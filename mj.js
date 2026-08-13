@@ -588,6 +588,12 @@ window.vueMJ = async function (sous) {
     l'écrasera pas. Jeton d'édition : ${jeton.lire() ? '✓ enregistré' : '✗ absent'} —
     <a href="#/mj/jeton">gérer</a>.</p>
 
+    <h2>Fréquentation</h2>
+    <p>Les visites du site (14 derniers jours, comptées par GitHub, rien
+    d'ajouté au site) : <a href="https://github.com/${ech(a.depots.public)}/graphs/traffic"
+    target="_blank" rel="noopener">ouvrir les statistiques ↗</a> — connecté à
+    ton compte GitHub.</p>
+
     <h2>Réglages avancés</h2>
     <div class="tw"><table><tbody>
     ${Object.entries(cfg.avance || {}).map(([k, v]) => `<tr><td><code>${ech(k)}</code></td><td>${ech(String(v))}</td></tr>`).join('')}
