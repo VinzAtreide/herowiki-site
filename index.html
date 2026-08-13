@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0d1117">
+<title>HeroWiki</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#9889;</text></svg>">
+</head>
+<body>
+
+<!-- ─────────────────────────────── écran de déverrouillage ─────────────── -->
+<div id="porte">
+  <form id="porte-form" autocomplete="off">
+    <div class="eclair">⚡</div>
+    <h1 id="porte-titre">HeroWiki</h1>
+    <p id="porte-sous" class="sous"></p>
+    <input id="phrase" type="password" inputmode="text" autocapitalize="none"
+           autocorrect="off" spellcheck="false" placeholder="ta phrase de passe">
+    <button id="porte-ok" type="submit">Entrer</button>
+    <label class="memo"><input type="checkbox" id="memo" checked> Se souvenir de moi sur cet appareil</label>
+    <p id="porte-msg" class="msg"></p>
+  </form>
+</div>
+
+<!-- ─────────────────────────────────────────────── application ─────────── -->
+<div id="app" hidden>
+
+  <header id="barre">
+    <button id="menu" class="ico" title="Menu">☰</button>
+    <a id="logo" href="#/">⚡ <span></span></a>
+    <div id="chercher">
+      <input id="q" type="search" placeholder="Chercher…" autocapitalize="none"
+             autocorrect="off" spellcheck="false">
+      <button id="q-vider" class="ico" hidden>✕</button>
+    </div>
+    <button id="qui" class="ico" title="Mon accès">●</button>
+  </header>
+
+  <nav id="cote">
+    <div class="cote-in">
+      <div class="grp" id="rayons"></div>
+      <div class="grp">
+        <h4>Filtrer</h4>
+        <input id="filtre" type="search" placeholder="dans la liste…" autocapitalize="none">
+        <div id="types"></div>
+      </div>
+      <div class="grp" id="bloc-tags">
+        <h4>Étiquettes</h4>
+        <div id="tags"></div>
+      </div>
+    </div>
+  </nav>
+  <div id="voile"></div>
+
+  <main id="vue"></main>
+  <footer id="pied"><span id="compteur"></span></footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
