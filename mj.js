@@ -255,7 +255,8 @@ window.voirComme = async function (nom) {
   if (!vue) return;
   if (!window.MJ_TR) window.MJ_TR = TR_COURANT;
   const reelles = new Map(MOI.coffres);
-  const tr = { nom, mj: false, groupe: vue.groupe, v: {}, f: {}, _simulation: true };
+  const tr = { nom, mj: false, groupe: vue.groupe, pj: vue.pj || null,
+               v: {}, f: {}, _simulation: true };
   for (const c of vue.v) {
     const b = reelles.get(c);
     if (b) tr.v[c] = b64vers(b);
@@ -659,6 +660,10 @@ async function vueConfig(a) {
       </tbody></table></div>
       <p><a class="puce" id="aj-joueur">+ Ajouter un joueur</a></p>
 
+      <h2>Mot d'accueil</h2>
+      <p>Ce que tes joueurs lisent en arrivant. <code>@Nom</code> devient un lien.</p>
+      <textarea id="cfg-accueil" class="cfg-large">${ech((cfg.site || {}).accueil || '')}</textarea>
+
       <h2>Exceptions nominatives</h2>
       <p>Une cible par ligne : <code>pnj-omega</code> (fiche entière),
       <code>pnj-omega#Secret</code> (ces rubriques), <code>tag:atlantide</code>.</p>
@@ -689,6 +694,8 @@ async function vueConfig(a) {
         else j[k] = v;
       }
     });
+    const acc = document.getElementById('cfg-accueil');
+    if (acc) { cfg.site = cfg.site || {}; cfg.site.accueil = acc.value.trim(); }
     cfg.exceptions = { voit: {}, voit_pas: {} };
     document.querySelectorAll('.cfg-exc').forEach(el => {
       const specs = el.value.split('\n').map(x => x.trim()).filter(Boolean);

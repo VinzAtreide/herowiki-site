@@ -105,7 +105,8 @@ async function ouvrirTrousseau(k) {
 }
 
 async function installer(tr) {
-  MOI = { nom: tr.nom, mj: tr.mj, groupe: tr.groupe, coffres: new Map(), frags: new Map() };
+  MOI = { nom: tr.nom, mj: tr.mj, groupe: tr.groupe, pjh: tr.pj || null,
+          coffres: new Map(), frags: new Map() };
   TAGS = new Map();
   for (const [nom, b] of Object.entries(tr.v || {})) {
     const brut = deb64(b);
@@ -420,31 +421,77 @@ async function vueRecherche(q) {
   poserExtraits(res, () => recherche_en_cours);
 }
 
-function vueAccueil() {
-  const n = ORDRE.length;
+async function vueAccueil() {
   const parRayon = RAYONS.map(r => ({ ...r, n: ORDRE.filter(e => e.b === r.id).length }))
     .filter(r => r.n);
-  const surpr = [], pris = new Set();
-  const pool = ORDRE.filter(e => e.b === 'lore' || e.b === 'pnj');
-  while (surpr.length < Math.min(6, pool.length)) {
-    const e = pool[Math.floor(Math.random() * pool.length)];
-    if (!pris.has(e.h)) { pris.add(e.h); surpr.push(e); }
+
+  // un article au hasard PAR rayon, retiré à chaque chargement
+  const surpr = [];
+  for (const r of parRayon) {
+    const pool = ORDRE.filter(e => e.b === r.id && e.h !== MOI.pjh);
+    if (pool.length) surpr.push(pool[Math.floor(Math.random() * pool.length)]);
   }
 
-  $('#vue').innerHTML = `
-    <h1 class="tt">${ech(META.titre)}</h1>
+  // liens utiles : sa fiche, celles de ses camarades, les portes du monde
+  const camarades = ORDRE.filter(e => e.b === 'pj' && e.h !== MOI.pjh);
+  const portes = ['Claremont Academy', 'Freedom City']
+    .map(n => ORDRE.find(e => e.n === n)).filter(Boolean);
+
+  let out = `
+    <h1 class="tt">Bienvenue sur ${ech(META.titre)}, ${ech(MOI.nom)}</h1>
     <p class="stt">${ech(META.sous_titre || '')}</p>
-    <p class="meta"><span>Bonjour ${ech(MOI.nom)}</span><span>${n} pages ouvertes</span></p>
-    <div class="entree"><p>Cherche un nom, un lieu, un pouvoir — la barre du haut fouille
-    tout ce qui t'est accessible et te montre le passage exact.</p></div>
-    <h2>Par où commencer</h2>
-    <ul class="liste">${parRayon.map(r =>
-      `<li><a href="#/r/${r.id}"><span class="n">${r.ico} ${ech(r.nom)}</span>` +
-      `<span class="x">${r.n} fiches</span></a></li>`).join('')}</ul>
-    <h2>Au hasard</h2>
-    <ul class="liste">${surpr.map(carte).join('')}</ul>`;
+    <div id="accueil-mot"></div>`;
+
+  if (MOI.pjh && CAT.has(MOI.pjh)) {
+    const moi = CAT.get(MOI.pjh);
+    out += `<h2>⭐ ${ech(moi.n)}${moi.t ? ` <span class="stt" style="font-size:.9rem">${ech(moi.t)}</span>` : ''}</h2>
+      <div class="visuel" id="visuel"></div>
+      <p><a class="puce" href="#/f/${MOI.pjh}">Ouvrir ma fiche complète</a></p>
+      <div id="accueil-statbloc"></div>`;
+  }
+
+  out += `<h2>🔗 Liens utiles</h2><ul class="liste">`;
+  if (MOI.pjh && CAT.has(MOI.pjh))
+    out += `<li><a href="#/f/${MOI.pjh}"><span class="n">⭐ Ma fiche — ${ech(CAT.get(MOI.pjh).n)}</span></a></li>`;
+  out += camarades.map(e =>
+    `<li><a href="#/f/${e.h}"><span class="n">🦸 ${ech(e.n)}</span>` +
+    (e.t ? ` <span class="t">${ech(e.t)}</span>` : '') + `</a></li>`).join('');
+  out += portes.map(e =>
+    `<li><a href="#/f/${e.h}"><span class="n">📍 ${ech(e.n)}</span></a></li>`).join('');
+  out += parRayon.map(r =>
+    `<li><a href="#/r/${r.id}"><span class="n">${r.ico} ${ech(r.nom)}</span>` +
+    `<span class="x">${r.n} fiches</span></a></li>`).join('') + '</ul>';
+
+  out += `<h2>🎲 À découvrir</h2><ul class="liste">${surpr.map(carte).join('')}</ul>`;
+
+  $('#vue').innerHTML = out;
   document.title = META.titre;
   window.scrollTo(0, 0);
+
+  // le mot d'accueil du MJ (chiffré Grand public)
+  (async () => {
+    const brut = MOI.coffres.get('p0');
+    const paquet = brut && await prendre('accueil.bin');
+    if (!paquet) return;
+    const d = await ouvrir(await hkdf(brut, 'accueil'), paquet);
+    const el = document.getElementById('accueil-mot');
+    if (d && el) { el.innerHTML = `<div class="entree">${d.h}</div>`; liens(el); }
+  })();
+
+  // le visuel et le statbloc de son personnage
+  if (MOI.pjh && CAT.has(MOI.pjh)) {
+    chargerVisuel(MOI.pjh);
+    (async () => {
+      const f = await ficheEntiere(MOI.pjh);
+      const el = document.getElementById('accueil-statbloc');
+      if (!f || !el) return;
+      const sb = f.rubriques.find(r => /statbloc/i.test(r.d.t || ''));
+      if (sb) {
+        el.innerHTML = `<section class="rub"><h2><span>${ech(sb.d.t)}</span></h2>${sb.d.h}</section>`;
+        liens(el);
+      }
+    })();
+  }
 }
 
 /* ── colonne latérale ───────────────────────────────────────────────────── */
@@ -456,11 +503,14 @@ function peuplerCote() {
     .map(r => `<a class="ray" data-r="${r.id}" href="#/r/${r.id}"><b>${r.ico} ${ech(r.nom)}</b><i>${r.n}</i></a>`)
     .join('');
 
+  // Les étiquettes nomment les ouvrages sources : réservées au MJ, elles
+  // casseraient l'immersion (et révèleraient la gamme) côté joueurs.
+  $('#bloc-tags').hidden = !MOI.mj;
   const c = new Map();
   ORDRE.forEach(e => (e.tg || []).forEach(t => c.set(String(t), (c.get(String(t)) || 0) + 1)));
   const top = [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 28);
-  $('#tags').innerHTML = top.map(([t, n]) =>
-    `<a class="puce" href="#/t/${encodeURIComponent(t)}">${ech(t)} ${n}</a>`).join('');
+  $('#tags').innerHTML = MOI.mj ? top.map(([t, n]) =>
+    `<a class="puce" href="#/t/${encodeURIComponent(t)}">${ech(t)} ${n}</a>`).join('') : '';
 
   const types = new Map();
   ORDRE.forEach(e => { if (e.k) types.set(e.k, (types.get(e.k) || 0) + 1); });
