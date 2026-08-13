@@ -76,11 +76,25 @@ function ech(s) {
 
 /* ── déverrouillage ─────────────────────────────────────────────────────── */
 
-async function cleDePhrase(phrase) {
+async function cleDePhraseIci(phrase) {
   const base = await crypto.subtle.importKey('raw', enc.encode(phrase.trim()),
     'PBKDF2', false, ['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits(
     { name: 'PBKDF2', hash: 'SHA-256', salt: SEL, iterations: META.it }, base, 256));
+}
+
+/** La clé se calcule dans un worker pour ne pas geler l'écran ; si le worker
+ *  ne démarre pas (vieux navigateur, file://), on calcule sur place. */
+function cleDePhrase(phrase) {
+  return new Promise(res => {
+    let w;
+    try { w = new Worker('worker.js'); }
+    catch (e) { return res(cleDePhraseIci(phrase)); }
+    const secours = setTimeout(async () => { w.terminate(); res(await cleDePhraseIci(phrase)); }, 30000);
+    w.onmessage = ev => { clearTimeout(secours); w.terminate(); res(new Uint8Array(ev.data)); };
+    w.onerror = async () => { clearTimeout(secours); w.terminate(); res(await cleDePhraseIci(phrase)); };
+    w.postMessage({ phrase: phrase.trim(), sel: SEL, it: META.it });
+  });
 }
 
 async function ouvrirTrousseau(k) {
@@ -338,8 +352,12 @@ async function vueFiche(h) {
     out += `<section class="rub"><h2><span>${ech(r.d.t || '')}</span>` +
       `<span class="bal b${b}">${ech(r.d.bal || '')}</span></h2>${r.d.h}</section>`;
   }
+  if (MOI.mj && window.editerFiche)
+    out += `<p><a class="puce" id="mj-editer">✏️ Modifier cette fiche (MJ)</a></p>`;
   $('#vue').innerHTML = out;
   liens($('#vue'));
+  const be = $('#mj-editer');
+  if (be) be.onclick = () => editerFiche(h);
   window.scrollTo(0, 0);
   document.title = (e ? e.n + ' — ' : '') + META.titre;
 }
@@ -390,10 +408,12 @@ function vueAccueil() {
   const n = ORDRE.length;
   const parRayon = RAYONS.map(r => ({ ...r, n: ORDRE.filter(e => e.b === r.id).length }))
     .filter(r => r.n);
-  const surpr = [];
+  const surpr = [], pris = new Set();
   const pool = ORDRE.filter(e => e.b === 'lore' || e.b === 'pnj');
-  for (let i = 0; i < Math.min(6, pool.length); i++)
-    surpr.push(pool[Math.floor(Math.random() * pool.length)]);
+  while (surpr.length < Math.min(6, pool.length)) {
+    const e = pool[Math.floor(Math.random() * pool.length)];
+    if (!pris.has(e.h)) { pris.add(e.h); surpr.push(e); }
+  }
 
   $('#vue').innerHTML = `
     <h1 class="tt">${ech(META.titre)}</h1>
@@ -451,7 +471,9 @@ async function router() {
   const arg = decodeURIComponent(reste.join('/') || '');
   document.querySelectorAll('.ray').forEach(a =>
     a.classList.toggle('on', quoi === 'r' && a.dataset.r === arg));
+  $('#retour').hidden = !quoi;
   fermerCote();
+  if (quoi === 'mj' && window.vueMJ) return vueMJ(arg);
   if (quoi === 'f') return vueFiche(arg);
   if (quoi === 'r') return vueRayon(arg, $('#filtre').value);
   if (quoi === 't') return vueTag(arg);
@@ -467,6 +489,7 @@ async function demarrer(tr) {
   $('#app').hidden = false;
   $('#logo').querySelector('span').textContent = META.titre;
   $('#qui').title = MOI.nom + (MOI.mj ? ' — MJ' : '');
+  $('#mj-btn').hidden = !MOI.mj;
   peuplerCote();
   await router();
 }
@@ -534,6 +557,8 @@ async function tenter(phrase, memoriser) {
 /* ── interactions ───────────────────────────────────────────────────────── */
 
 window.addEventListener('hashchange', router);
+$('#retour').onclick = () => history.length > 1 ? history.back() : (location.hash = '#/');
+$('#mj-btn').onclick = () => location.hash = '#/mj';
 $('#voirph').onclick = () => {
   const p = $('#phrase');
   p.type = p.type === 'password' ? 'text' : 'password';

@@ -8,7 +8,7 @@
 <!-- Le site n'a besoin de rien d'extérieur : on l'interdit. Une extension
      douteuse ou un contenu injecté ne peut ni charger ni exécuter ailleurs. -->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data:; base-uri 'none'; object-src 'none'">
+      content="default-src 'self'; img-src 'self' data:; connect-src 'self' https://api.github.com; worker-src 'self'; base-uri 'none'; object-src 'none'">
 <title>HeroWiki</title>
 <link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
@@ -40,12 +40,14 @@
 
   <header id="barre">
     <button id="menu" class="ico" title="Menu">☰</button>
+    <button id="retour" class="ico" title="Retour" hidden>←</button>
     <a id="logo" href="#/">⚡ <span></span></a>
     <div id="chercher">
       <input id="q" type="search" placeholder="Chercher…" autocapitalize="none"
              autocorrect="off" spellcheck="false">
       <button id="q-vider" class="ico" hidden>✕</button>
     </div>
+    <button id="mj-btn" class="ico" title="Page MJ" hidden>🛠</button>
     <button id="qui" class="ico" title="Mon accès">●</button>
   </header>
 
@@ -70,5 +72,6 @@
 </div>
 
 <script src="app.js"></script>
+<script src="mj.js"></script>
 </body>
 </html>

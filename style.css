@@ -156,6 +156,32 @@ mark{background:#f2c14e44;color:#fff;border-radius:3px;padding:0 2px}
   margin:40px auto 0;max-width:820px}
 .charge{text-align:center;color:var(--gris);padding:3em}
 
+/* Sur un petit écran, la barre porte jusqu'à six commandes : les espacements
+   se resserrent pour que la dernière ne sorte pas de l'écran. */
+@media (max-width:480px){
+  #barre{gap:2px;padding-left:4px;padding-right:4px}
+  .ico{padding:8px 5px}
+  #logo{font-size:1rem}
+  #q{padding:9px 8px}
+}
+
+/* ── éditeur MJ ──────────────────────────────────────────────────────── */
+#ed{width:100%;min-height:46vh;padding:12px;border-radius:var(--r);
+  border:1px solid var(--trait);background:var(--fond2);color:var(--texte);
+  font:13px/1.55 Consolas,Menlo,monospace;resize:vertical}
+#ed:focus{outline:none;border-color:var(--or)}
+.ed-b{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;align-items:center}
+.btn1{padding:10px 18px;border:0;border-radius:var(--r);background:var(--or);
+  color:#231b06;font-weight:700;cursor:pointer}
+.btn1:disabled{opacity:.5}
+.btn2{padding:10px 18px;border:1px solid var(--trait);border-radius:var(--r);
+  background:var(--fond3);color:var(--texte);cursor:pointer}
+.btn3{padding:10px 14px;color:var(--gris)}
+#ed-apercu{border-top:1px dashed var(--trait);margin-top:14px;padding-top:14px}
+#pat{width:100%;padding:12px 14px;border:0;background:none;color:var(--texte)}
+#pat:focus{outline:none}
+.copie{white-space:nowrap;font-size:.85rem}
+
 /* ── large ───────────────────────────────────────────────────────────── */
 @media (min-width:900px){
   #logo span{display:inline}
