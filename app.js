@@ -312,7 +312,8 @@ const CAT_ORDRE = {
   regles: ['Pouvoir', 'Talent', 'Équipement', 'Véhicule', 'Option de règles'],
   campagne: ["Résumé d'épisode", 'Journal', 'Aide de jeu'],
 };
-const BAL = { 'Grand public': 0, 'Super': 1, 'Secret': 2, 'Très secret': 3, 'MJ only': 4 };
+const BAL = { 'Grand public': 0, 'Super': 1, 'Secret': 2, 'Très secret': 3, 'MJ only': 4,
+  'Projet Isekai': 5 };
 
 function liens(el) {
   el.querySelectorAll('a[data-h]').forEach(a => {
@@ -622,17 +623,20 @@ async function vueAccueil() {
       <div id="accueil-statbloc"></div>`;
   }
 
-  out += `<h2>🔗 Liens utiles</h2><ul class="liste">`;
+  // les liens utiles en tuiles
+  const tuile = (href, ico, titre, sous) =>
+    `<a class="tuile" href="${href}"><span class="tuile-ico">${ico}</span>` +
+    `<span class="tuile-t">${ech(titre)}</span>` +
+    (sous ? `<span class="tuile-s">${ech(sous)}</span>` : '') + `</a>`;
+  out += `<h2>🔗 Liens utiles</h2><div class="tuiles">`;
+  const guide = ORDRE.find(e => e.n === 'Par où commencer');
+  if (guide) out += tuile('#/f/' + guide.h, '🧭', 'Par où commencer', 'le guide du nouvel arrivant');
   if (MOI.pjh && CAT.has(MOI.pjh))
-    out += `<li><a href="#/f/${MOI.pjh}"><span class="n">⭐ Ma fiche — ${ech(CAT.get(MOI.pjh).n)}</span></a></li>`;
-  out += camarades.map(e =>
-    `<li><a href="#/f/${e.h}"><span class="n">🦸 ${ech(e.n)}</span>` +
-    (e.t ? ` <span class="t">${ech(e.t)}</span>` : '') + `</a></li>`).join('');
-  out += portes.map(e =>
-    `<li><a href="#/f/${e.h}"><span class="n">📍 ${ech(e.n)}</span></a></li>`).join('');
-  out += parRayon.map(r =>
-    `<li><a href="#/r/${r.id}"><span class="n">${r.ico} ${ech(r.nom)}</span>` +
-    `<span class="x">${r.n} fiches</span></a></li>`).join('') + '</ul>';
+    out += tuile('#/f/' + MOI.pjh, '⭐', 'Ma fiche', CAT.get(MOI.pjh).n);
+  out += camarades.map(e => tuile('#/f/' + e.h, '🦸', e.n, e.t || '')).join('');
+  out += portes.map(e => tuile('#/f/' + e.h, '📍', e.n, '')).join('');
+  out += parRayon.map(r => tuile('#/r/' + r.id, r.ico, r.nom, r.n + ' fiches')).join('');
+  out += `</div>`;
 
   // reprendre où on en était — mémoire locale de l'appareil, rien en ligne
   let repris = [];
@@ -792,6 +796,7 @@ async function demarrer(tr) {
   $('#logo').querySelector('span').textContent = META.titre;
   $('#qui').title = MOI.nom + (MOI.mj ? ' — MJ' : '');
   $('#mj-btn').hidden = !MOI.mj;
+  document.body.classList.toggle('mj', !!MOI.mj);   // révèle les sceaux 🜲
   peuplerCote();
   await router();
 }

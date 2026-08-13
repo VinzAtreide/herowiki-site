@@ -183,7 +183,8 @@ function mjParser(source) {
   return { meta, preambule, rubriques };
 }
 
-const MJ_PALIERS = { 'Grand public': 'p0', 'Super': 'p1', 'Secret': 'p2', 'Très secret': 'p3', 'MJ only': 'p4' };
+const MJ_PALIERS = { 'Grand public': 'p0', 'Super': 'p1', 'Secret': 'p2', 'Très secret': 'p3',
+  'MJ only': 'p4', 'Projet Isekai': 'p4' };
 
 function mjCoffre(fiche, balise) {
   const meta = fiche.meta;
@@ -381,8 +382,9 @@ window.editerFiche = async function (h) {
     <h1 class="tt">✏️ ${ech(info.n)}</h1>
     <p class="meta"><span>${ech(info.c)}</span></p>
     <p class="meta"><span>insérer une rubrique :</span>
-      ${['Grand public', 'Super', 'Secret', 'Très secret', 'MJ only'].map((b, i) =>
-        `<a class="puce bal-ins b${i}" data-bal="${b}">[${b}]</a>`).join('')}</p>
+      ${['Grand public', 'Super', 'Secret', 'Très secret', 'MJ only', 'Projet Isekai'].map((b, i) =>
+        `<a class="puce bal-ins b${i}" data-bal="${b}">[${b}]</a>`).join('')}
+      <a class="puce" id="ed-sceau" title="marque une invention dans le texte">🜲 sceau</a></p>
     <textarea id="ed" spellcheck="false">${ech(src)}</textarea>
     <div class="ed-b">
       <button id="ed-voir" class="btn2">Aperçu</button>
@@ -406,6 +408,13 @@ window.editerFiche = async function (h) {
     ta.selectionStart = p + bloc.indexOf('Titre');
     ta.selectionEnd = p + bloc.indexOf(' de la rubrique') + 15;
   });
+  const sceau = document.getElementById('ed-sceau');
+  if (sceau) sceau.onclick = () => {
+    const ta = $('#ed');
+    const p = ta.selectionStart;
+    ta.value = ta.value.slice(0, p) + ' {{isekai}}' + ta.value.slice(ta.selectionEnd);
+    ta.focus();
+  };
 
   // Un visuel : l'original part dans le dépôt privé, la version chiffrée
   // (clé du coffre de l'entrée) dans le dépôt public, et la ligne `visuel:`
