@@ -219,18 +219,35 @@ async function chercher(requete) {
     return { h, s, ou: [...ou].sort((a, b) => a - b) };
   }).sort((a, b) => b.s - a.s).slice(0, 50);
 
-  // Surlignage. Les cinquante fragments sont demandés **d'un seul coup** :
-  // en série, chaque extrait coûtait un aller-retour réseau et la recherche
-  // mettait six secondes depuis un téléphone. En parallèle, elle en met moins
-  // d'une — c'est la même quantité d'octets, mais une seule attente.
-  const motifs = mots.map(m => new RegExp(classes(m), 'gi'));
-  await Promise.all(res.map(async r => {
-    r.e = CAT.get(r.h) || { n: '(fiche)', t: '', k: '', b: '' };
-    const o = r.ou.find(x => x > 0);
-    const fr = await fragment(r.h, o === undefined ? 0 : o);
-    r.extrait = fr ? extrait(texteNu(fr.h || ''), motifs, fr.t || '') : '';
-  }));
+  res.forEach(r => { r.e = CAT.get(r.h) || { n: '(fiche)', t: '', k: '', b: '' }; });
+  res.motifs = mots.map(m => new RegExp(classes(m), 'gi'));
   return res;
+}
+
+/** Les extraits arrivent **après** la liste.
+ *
+ *  Chercher, c'est deux choses : savoir *où* c'est, et savoir *ce que ça dit*.
+ *  La première tient dans l'index, déjà en mémoire. La seconde demande d'aller
+ *  chercher cinquante fragments sur le réseau. Les attendre pour afficher quoi
+ *  que ce soit faisait patienter deux secondes devant une page blanche ; les
+ *  laisser se poser un par un dans une liste déjà lisible ne fait patienter
+ *  personne. */
+async function poserExtraits(res, quand) {
+  await Promise.all(res.slice(0, 30).map(async r => {
+    const o = r.ou.find(x => x > 0);
+    let fr = await fragment(r.h, o === undefined ? 0 : o);
+    let txt = fr ? texteNu(fr.h || '') : '';
+    // Le mot peut n'être que dans le nom ou une étiquette : la rubrique
+    // trouvée n'a alors rien à montrer. On retombe sur le préambule, qui dit
+    // au moins de quoi la fiche parle.
+    if (!txt && o !== undefined) {
+      fr = await fragment(r.h, 0);
+      txt = fr ? texteNu(fr.h || '') : '';
+    }
+    if (!txt || quand() !== res) return;
+    const el = document.getElementById('x-' + r.h);
+    if (el) el.innerHTML = extrait(txt, res.motifs, fr.t || '');
+  }));
 }
 
 /** « ecole » doit trouver « école » : chaque voyelle devient sa classe. */
@@ -348,9 +365,12 @@ function vueTag(t) {
   window.scrollTo(0, 0);
 }
 
+let recherche_en_cours = null;
+
 async function vueRecherche(q) {
   $('#vue').innerHTML = '<p class="charge">Recherche…</p>';
   const res = await chercher(q);
+  recherche_en_cours = res;
   if (!res.length) {
     $('#vue').innerHTML = `<h1 class="tt">« ${ech(q)} »</h1>` +
       `<p class="rien">Rien trouvé. Essaie un mot plus court, ou une orthographe voisine.</p>`;
@@ -361,8 +381,9 @@ async function vueRecherche(q) {
     '<ul class="liste">' + res.map(r =>
       `<li><a href="#/f/${r.h}"><span class="n">${ech(r.e.n)}</span>` +
       (r.e.t ? ` <span class="t">${ech(r.e.t)}</span>` : '') +
-      (r.extrait ? `<span class="x">${r.extrait}</span>` : '') + `</a></li>`).join('') + '</ul>';
+      `<span class="x" id="x-${r.h}"></span></a></li>`).join('') + '</ul>';
   window.scrollTo(0, 0);
+  poserExtraits(res, () => recherche_en_cours);
 }
 
 function vueAccueil() {
