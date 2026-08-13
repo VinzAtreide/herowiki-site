@@ -302,6 +302,7 @@ function emettreCampagne(cfg) {
     if (String(j.role || '').toLowerCase() === 'mj') L.push('    role: mj');
     else {
       if (j.groupe) L.push(`    groupe: ${j.groupe}`);
+      if (j.palier) L.push(`    palier: ${ym(j.palier)}`);
       if (j.pj) L.push(`    pj: ${ym(j.pj)}`);
     }
   }
@@ -540,10 +541,16 @@ window.vueMJ = async function (sous) {
 
     <h2>Accès</h2>
     <div class="tw"><table><thead><tr><th>Qui</th><th>Voit</th><th>Phrase</th><th></th></tr></thead>
-    <tbody>${(a.acces || []).map(j => `<tr><td><b>${ech(j.nom)}</b></td>
-      <td>${j.mj ? 'tout (MJ)' : 'groupe ' + ech(j.groupe || '—')}</td>
+    <tbody>${(a.acces || []).map(j => {
+      const vue = (a.vues || {})[j.nom] || {};
+      const noms = { p0: 'Grand public', p1: 'Super', p2: 'Secret', p3: 'Très secret', p4: 'MJ only' };
+      let palier = 'p0';
+      for (const c of vue.v || []) if (noms[c] && c > palier) palier = c;
+      return `<tr><td><b>${ech(j.nom)}</b></td>
+      <td>${j.mj ? 'tout (MJ)' : ech(j.groupe || '—') + ' · ' + noms[palier]}</td>
       <td><code>${ech(j.phrase)}</code></td>
-      <td>${j.lien ? `<a class="copie" data-c="${ech(j.lien)}">copier le lien</a>` : ''}</td></tr>`).join('')}
+      <td>${j.lien ? `<a class="copie" data-c="${ech(j.lien)}">copier le lien</a>` : ''}</td></tr>`;
+    }).join('')}
     </tbody></table></div>
     <p class="meta"><span>⚠ un lien vaut la phrase : chacun ne reçoit que le sien</span></p>
 
@@ -627,15 +634,20 @@ async function vueConfig(a) {
       <p><a class="puce" id="aj-groupe">+ Ajouter un groupe</a></p>
 
       <h2>Joueurs</h2>
-      <div class="tw"><table><thead><tr><th>Nom</th><th>Rôle</th><th>Groupe</th><th></th></tr></thead><tbody>
+      <p>« Palier » règle la permission fine de CE joueur ; laissé sur
+      « celui du groupe », il suit son groupe.</p>
+      <div class="tw"><table><thead><tr><th>Nom</th><th>Rôle</th><th>Groupe</th><th>Palier</th><th></th></tr></thead><tbody>
       ${cfg.joueurs.map((j, i) => {
         const mj = String(j.role || '').toLowerCase() === 'mj';
+        const optP = ['', ...PALIERS_L.slice(0, 4)].map(p =>
+          `<option value="${p}"${(j.palier || '') === p ? ' selected' : ''}>${p || '(celui du groupe)'}</option>`).join('');
         return `<tr>
         <td><input class="cfg-in" data-j="${i}" data-k="nom" value="${ech(j.nom || '')}"></td>
         <td><select class="cfg-in" data-j="${i}" data-k="role">
           <option value=""${mj ? '' : ' selected'}>joueur</option>
           <option value="mj"${mj ? ' selected' : ''}>MJ</option></select></td>
         <td>${mj ? '—' : `<select class="cfg-in" data-j="${i}" data-k="groupe">${optG(j.groupe)}</select>`}</td>
+        <td>${mj ? 'tout' : `<select class="cfg-in" data-j="${i}" data-k="palier">${optP}</select>`}</td>
         <td><a class="suppr" data-sj="${i}">retirer</a></td></tr>`;
       }).join('')}
       </tbody></table></div>
@@ -667,6 +679,7 @@ async function vueConfig(a) {
       else {
         const j = cfg.joueurs[+el.dataset.j];
         if (k === 'role') { if (v === 'mj') { j.role = 'mj'; delete j.groupe; delete j.pj; } else delete j.role; }
+        else if (k === 'palier') { if (v) j.palier = v; else delete j.palier; }
         else j[k] = v;
       }
     });
