@@ -472,27 +472,47 @@ function listeParCategories(items, bible) {
   let ouverts = new Set();
   try { ouverts = new Set(JSON.parse(localStorage.getItem('hw.ouvert.' + bible) || '[]')); } catch (e) { }
 
-  // Les 540 lieux se subdivisent par région du monde, d'après leurs
-  // étiquettes — Freedom City d'abord, puis le tour d'Earth-Prime.
+  // Les 540 lieux se rangent par continent, puis par région à l'intérieur —
+  // les deux cités du jeu gardent leur porte dédiée en tête.
   const REGIONS = ['Freedom City', 'Emerald City', 'États-Unis', 'Caraïbes',
     'Amérique centrale', 'Amérique du Sud', 'Méditerranée', 'Moyen-Orient',
     'Afrique subsaharienne', 'Asie centrale', 'Asie orientale', 'Australasie'];
   const AILLEURS = 'Ailleurs & au-delà';
+  const CONTINENTS = [
+    ['Freedom City', ['Freedom City']],
+    ['Emerald City', ['Emerald City']],
+    ['Amériques', ['États-Unis', 'Caraïbes', 'Amérique centrale', 'Amérique du Sud']],
+    ['Europe & Méditerranée', ['Méditerranée']],
+    ['Afrique & Moyen-Orient', ['Afrique subsaharienne', 'Moyen-Orient']],
+    ['Asie', ['Asie centrale', 'Asie orientale']],
+    ['Océanie', ['Australasie']],
+    [AILLEURS, [AILLEURS]],
+  ];
+
+  const bloc = (cle, titre, contenu, n, sous2) =>
+    `<details class="sous${sous2 ? ' sous2' : ''}"${ouverts.has(cle) ? ' open' : ''} data-m="${ech(cle)}">` +
+    `<summary><span>${ech(titre)}</span> <i>${n}</i></summary>${contenu}</details>`;
 
   const sousListe = (k, l) => {
     if (!(bible === 'lore' && k === 'Lieu' && l.length > 40))
       return '<ul class="liste">' + l.map(carte).join('') + '</ul>';
-    const sous = new Map();
+    const parRegion = new Map();
     for (const e of l) {
       const r = REGIONS.find(x => (e.tg || []).some(t => String(t) === x)) || AILLEURS;
-      if (!sous.has(r)) sous.set(r, []);
-      sous.get(r).push(e);
+      if (!parRegion.has(r)) parRegion.set(r, []);
+      parRegion.get(r).push(e);
     }
-    const rOrdre = [...REGIONS.filter(r => sous.has(r)), ...(sous.has(AILLEURS) ? [AILLEURS] : [])];
-    return rOrdre.map(r =>
-      `<details class="sous"${ouverts.has(k + '/' + r) ? ' open' : ''} data-m="${ech(k + '/' + r)}">` +
-      `<summary><span>${ech(r)}</span> <i>${sous.get(r).length}</i></summary>` +
-      '<ul class="liste">' + sous.get(r).map(carte).join('') + '</ul></details>').join('');
+    return CONTINENTS.map(([cont, regions]) => {
+      const presentes = regions.filter(r => parRegion.has(r));
+      if (!presentes.length) return '';
+      const total = presentes.reduce((s, r) => s + parRegion.get(r).length, 0);
+      const corps = presentes.length === 1
+        ? '<ul class="liste">' + parRegion.get(presentes[0]).map(carte).join('') + '</ul>'
+        : presentes.map(r => bloc(`${k}/${cont}/${r}`, r,
+            '<ul class="liste">' + parRegion.get(r).map(carte).join('') + '</ul>',
+            parRegion.get(r).length, true)).join('');
+      return bloc(`${k}/${cont}`, cont, corps, total);
+    }).join('');
   };
 
   // pas de vraies ancres : un « # » dans l'adresse relancerait le routeur
@@ -516,7 +536,7 @@ function listeParCategories(items, bible) {
   return out;
 }
 
-function vueRayon(bible, filtre) {
+function vueRayon(bible, filtre, cible) {
   const f = nrm(filtre || '');
   let items = ORDRE.filter(e => e.b === bible);
   if (f) items = items.filter(e => nrm(e.n).includes(f) || nrm(e.t || '').includes(f));
@@ -536,6 +556,10 @@ function vueRayon(bible, filtre) {
   });
   if (filtre) { fr.focus(); fr.selectionStart = fr.selectionEnd = fr.value.length; }
   else window.scrollTo(0, 0);
+  if (cible) setTimeout(() => {
+    const d = [...document.querySelectorAll('details.cat')].find(x => x.dataset.c === cible);
+    if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth' }); }
+  }, 60);
   document.title = r.nom + ' — ' + META.titre;
 }
 
@@ -654,11 +678,33 @@ async function vueAccueil() {
 /* ── colonne latérale ───────────────────────────────────────────────────── */
 
 function peuplerCote() {
-  $('#rayons').innerHTML = '<h4>Rayons</h4>' + RAYONS
+  // le hall d'abord, puis chaque rayon dépliable vers ses catégories
+  const rayons = RAYONS
     .map(r => ({ ...r, n: ORDRE.filter(e => e.b === r.id).length }))
-    .filter(r => r.n)
-    .map(r => `<a class="ray" data-r="${r.id}" href="#/r/${r.id}"><b>${r.ico} ${ech(r.nom)}</b><i>${r.n}</i></a>`)
-    .join('');
+    .filter(r => r.n);
+  $('#rayons').innerHTML = '<h4>Rayons</h4>'
+    + `<a class="ray" href="#/"><b>🏛 Le hall</b></a>`
+    + rayons.map(r => {
+      const cats = new Map();
+      ORDRE.forEach(e => { if (e.b === r.id && e.k) cats.set(e.k, (cats.get(e.k) || 0) + 1); });
+      const pref = CAT_ORDRE[r.id] || [];
+      const liste = [...cats.entries()].sort((a, b) => {
+        const ia = pref.indexOf(a[0]), ib = pref.indexOf(b[0]);
+        if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        return b[1] - a[1];
+      });
+      if (liste.length < 2)
+        return `<a class="ray" data-r="${r.id}" href="#/r/${r.id}"><b>${r.ico} ${ech(r.nom)}</b><i>${r.n}</i></a>`;
+      return `<details class="ray-d"><summary class="ray" data-r="${r.id}">
+        <b>${r.ico} ${ech(r.nom)}</b><i>${r.n}</i></summary>
+        <a class="ray sous-ray" href="#/r/${r.id}">tout le rayon</a>
+        ${liste.map(([k, n]) => `<a class="ray sous-ray"
+          href="#/r/${r.id}/${encodeURIComponent(k)}">${ech(k)}<i>${n}</i></a>`).join('')}
+      </details>`;
+    }).join('');
+  // toucher le nom du rayon navigue ; le chevron seul déplie
+  document.querySelectorAll('.ray-d summary b').forEach(b =>
+    b.onclick = ev => { ev.preventDefault(); location.hash = '#/r/' + b.closest('summary').dataset.r; });
 
   // Les étiquettes nomment les ouvrages sources : réservées au MJ, elles
   // casseraient l'immersion (et révèleraient la gamme) côté joueurs.
@@ -698,7 +744,10 @@ async function router() {
   fermerCote();
   if (quoi === 'mj' && window.vueMJ) return vueMJ(arg);
   if (quoi === 'f') return vueFiche(arg);
-  if (quoi === 'r') return vueRayon(arg, $('#filtre').value);
+  if (quoi === 'r') {
+    const [bible, cible] = arg.split('/');
+    return vueRayon(bible, $('#filtre').value, cible);
+  }
   if (quoi === 't') return vueTag(arg);
   if (quoi === 'q') { $('#q').value = arg; return vueRecherche(arg); }
   return vueAccueil();
@@ -706,9 +755,38 @@ async function router() {
 
 /* ── démarrage ──────────────────────────────────────────────────────────── */
 
+/* Le sas : à la connexion — jamais pendant la navigation — les archives
+ * s'ouvrent en scène. La séquence tourne PENDANT le vrai déchiffrement, et
+ * dure au moins le temps de se lire. */
+async function sas(tr) {
+  const etapes = [
+    'Initialisation du terminal des archives…',
+    `Authentification : ${tr.nom || 'agent'}…`,
+    'Empreinte rétinienne acceptée…',
+    'Contrôle des habilitations…',
+    'Déchiffrement des dossiers autorisés…',
+    'Accès accordé. Bienvenue.',
+  ];
+  $('#porte').hidden = true;
+  $('#sas').hidden = false;
+  const lignes = $('#sas-lignes');
+  lignes.innerHTML = '';
+  for (let i = 0; i < etapes.length; i++) {
+    const d = document.createElement('div');
+    d.textContent = etapes[i];
+    lignes.appendChild(d);
+    $('#sas-jauge').style.width = Math.round(((i + 1) / etapes.length) * 100) + '%';
+    await new Promise(r => setTimeout(r, i === etapes.length - 1 ? 550 : 380));
+    d.classList.add('ok');
+  }
+}
+
 async function demarrer(tr) {
   window.TR_COURANT = tr;        // la page MJ s'en sert pour « voir comme »
+  const anim = tr._simulation ? Promise.resolve() : sas(tr);
   await installer(tr);
+  await anim;
+  $('#sas').hidden = true;
   $('#porte').hidden = true;
   $('#app').hidden = false;
   $('#logo').querySelector('span').textContent = META.titre;
