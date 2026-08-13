@@ -350,8 +350,12 @@ async function vueFiche(h) {
     const m = [];
     if (e.k) m.push(ech(e.k));
     if (e.al && e.al.length) m.push('alias : ' + e.al.map(ech).join(', '));
-    if (e.src && e.src.length) m.push(ech(String(e.src[0])));
+    // la ligne de source cite l'ouvrage réel : réservée au MJ sauf réglage
+    if ((MOI.mj || META.src) && e.src && e.src.length) m.push(ech(String(e.src[0])));
     out += `<p class="meta">${m.map(x => '<span>' + x + '</span>').join('')}</p>`;
+    if (MOI.mj && window.editerFiche)
+      out += `<p class="mj-actions"><a class="puce" id="mj-editer">✏️ Modifier</a>
+        <a class="puce" id="mj-mention">📋 Copier la mention @</a></p>`;
     if (e.hz === 'scenario')
       out += `<div class="bandeau">⚠ Ce qui suit n'existe que si l'aventure est jouée : ` +
         `rien n'en est encore vrai dans le monde.</div>`;
@@ -367,10 +371,14 @@ async function vueFiche(h) {
     out += `<section class="rub"><h2><span>${ech(r.d.t || '')}</span>` +
       `<span class="bal b${b}">${ech(r.d.bal || '')}</span></h2>${r.d.h}</section>`;
   }
-  if (MOI.mj && window.editerFiche)
-    out += `<p><a class="puce" id="mj-editer">✏️ Modifier cette fiche (MJ)</a>
-      <a class="puce" id="mj-mention">📋 Copier la mention @</a></p>`;
   $('#vue').innerHTML = out;
+  // mémorise les six dernières fiches lues, sur cet appareil seulement
+  try {
+    const vu = JSON.parse(localStorage.getItem('hw.vu') || '[]').filter(x => x !== h);
+    vu.unshift(h);
+    localStorage.setItem('hw.vu', JSON.stringify(vu.slice(0, 6)));
+  } catch (err) { }
+  armerTables($('#vue'));
   if (e && e.img) chargerVisuel(h);
   liens($('#vue'));
   const be = $('#mj-editer');
@@ -384,6 +392,47 @@ async function vueFiche(h) {
   };
   window.scrollTo(0, 0);
   document.title = (e ? e.n + ' — ' : '') + META.titre;
+}
+
+/** Les tables à jet du corpus deviennent jouables : toute table dont la
+ *  première colonne s'appelle « d20 », « 1d20 », « 2d6 »… reçoit un bouton
+ *  🎲. Le jet surligne la ligne obtenue et affiche le résultat en clair.
+ *  Les plages « 1–5 » et les valeurs simples sont comprises. */
+function armerTables(racine) {
+  racine.querySelectorAll('.tw table').forEach(table => {
+    const th = table.querySelector('thead th');
+    const m = th && th.textContent.trim().match(/^(\d*)d(\d+)$/i);
+    if (!m) return;
+    const nb = parseInt(m[1] || '1', 10), faces = parseInt(m[2], 10);
+    if (!faces || faces > 1000 || nb > 20) return;
+    const conteneur = table.closest('.tw');
+    const barre = document.createElement('p');
+    barre.className = 'de-barre';
+    barre.innerHTML = `<button class="btn2 de-btn">🎲 Lancer ${nb > 1 ? nb : ''}d${faces}</button>
+      <span class="de-resultat"></span>`;
+    conteneur.before(barre);
+    barre.querySelector('.de-btn').onclick = () => {
+      let total = 0;
+      for (let i = 0; i < nb; i++) total += 1 + Math.floor(Math.random() * faces);
+      let ligne = null;
+      table.querySelectorAll('tbody tr').forEach(tr => {
+        tr.classList.remove('de-touche');
+        const c = tr.cells[0] ? tr.cells[0].textContent.trim() : '';
+        const plage = c.match(/^(\d+)\s*[–\-—à]+\s*(\d+)/);
+        const seul = c.match(/^(\d+)\+?$/);
+        if ((plage && total >= +plage[1] && total <= +plage[2])
+          || (seul && (+seul[1] === total || (c.endsWith('+') && total >= +seul[1]))))
+          ligne = tr;
+      });
+      const sortie = barre.querySelector('.de-resultat');
+      if (ligne) {
+        ligne.classList.add('de-touche');
+        ligne.scrollIntoView({ block: 'nearest' });
+        const texte = [...ligne.cells].slice(1).map(c => c.textContent.trim()).join(' — ');
+        sortie.innerHTML = `<b>${total}</b> → ${ech(texte)}`;
+      } else sortie.innerHTML = `<b>${total}</b> — hors table`;
+    };
+  });
 }
 
 /** Le visuel d'une fiche est chiffré avec une clé dérivée du coffre de son
@@ -417,18 +466,53 @@ function listeParCategories(items, bible) {
     if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
     return b[1].length - a[1].length;
   });
+
+  // Repliées par défaut ; l'état ouvert survit à la navigation, par rayon,
+  // sur cet appareil.
+  let ouverts = new Set();
+  try { ouverts = new Set(JSON.parse(localStorage.getItem('hw.ouvert.' + bible) || '[]')); } catch (e) { }
+
+  // Les 540 lieux se subdivisent par région du monde, d'après leurs
+  // étiquettes — Freedom City d'abord, puis le tour d'Earth-Prime.
+  const REGIONS = ['Freedom City', 'Emerald City', 'États-Unis', 'Caraïbes',
+    'Amérique centrale', 'Amérique du Sud', 'Méditerranée', 'Moyen-Orient',
+    'Afrique subsaharienne', 'Asie centrale', 'Asie orientale', 'Australasie'];
+  const AILLEURS = 'Ailleurs & au-delà';
+
+  const sousListe = (k, l) => {
+    if (!(bible === 'lore' && k === 'Lieu' && l.length > 40))
+      return '<ul class="liste">' + l.map(carte).join('') + '</ul>';
+    const sous = new Map();
+    for (const e of l) {
+      const r = REGIONS.find(x => (e.tg || []).some(t => String(t) === x)) || AILLEURS;
+      if (!sous.has(r)) sous.set(r, []);
+      sous.get(r).push(e);
+    }
+    const rOrdre = [...REGIONS.filter(r => sous.has(r)), ...(sous.has(AILLEURS) ? [AILLEURS] : [])];
+    return rOrdre.map(r =>
+      `<details class="sous"${ouverts.has(k + '/' + r) ? ' open' : ''} data-m="${ech(k + '/' + r)}">` +
+      `<summary><span>${ech(r)}</span> <i>${sous.get(r).length}</i></summary>` +
+      '<ul class="liste">' + sous.get(r).map(carte).join('') + '</ul></details>').join('');
+  };
+
   // pas de vraies ancres : un « # » dans l'adresse relancerait le routeur
   let out = '<p>' + ordre.map(([k, l]) =>
     `<a class="puce" data-cat="${ech(k)}">${ech(k)} ${l.length}</a>`).join('') + '</p>';
   for (const [k, l] of ordre) {
-    out += `<details class="cat" open data-c="${ech(k)}">` +
+    out += `<details class="cat"${ouverts.has(k) ? ' open' : ''} data-c="${ech(k)}" data-m="${ech(k)}">` +
       `<summary><span>${ech(k)}</span> <i>${l.length}</i></summary>` +
-      '<ul class="liste">' + l.map(carte).join('') + '</ul></details>';
+      sousListe(k, l) + '</details>';
   }
-  setTimeout(() => document.querySelectorAll('[data-cat]').forEach(a => a.onclick = () => {
-    const cible = [...document.querySelectorAll('details.cat')].find(d => d.dataset.c === a.dataset.cat);
-    if (cible) { cible.open = true; cible.scrollIntoView({ behavior: 'smooth' }); }
-  }), 0);
+  setTimeout(() => {
+    document.querySelectorAll('[data-cat]').forEach(a => a.onclick = () => {
+      const cible = [...document.querySelectorAll('details.cat')].find(d => d.dataset.c === a.dataset.cat);
+      if (cible) { cible.open = true; cible.scrollIntoView({ behavior: 'smooth' }); }
+    });
+    document.querySelectorAll('details[data-m]').forEach(d => d.addEventListener('toggle', () => {
+      d.open ? ouverts.add(d.dataset.m) : ouverts.delete(d.dataset.m);
+      try { localStorage.setItem('hw.ouvert.' + bible, JSON.stringify([...ouverts])); } catch (e) { }
+    }));
+  }, 0);
   return out;
 }
 
@@ -440,8 +524,18 @@ function vueRayon(bible, filtre) {
   const parCats = ['lore', 'pnj', 'regles', 'campagne'].includes(bible) && !f;
   $('#vue').innerHTML = `<h1 class="tt">${r.ico} ${ech(r.nom)}</h1>` +
     `<p class="meta"><span>${items.length} fiche${items.length > 1 ? 's' : ''}</span></p>` +
+    `<div class="champ champ-rayon"><input id="filtre-rayon" type="search"
+      placeholder="filtrer ${ech(r.nom.toLowerCase())}…" autocapitalize="none"
+      value="${ech(filtre || '')}"></div>` +
     (parCats ? listeParCategories(items, bible) : listeAvecLettres(items));
-  window.scrollTo(0, 0);
+  const fr = $('#filtre-rayon');
+  let tmp = null;
+  fr.addEventListener('input', () => {
+    clearTimeout(tmp);
+    tmp = setTimeout(() => { $('#filtre').value = fr.value; vueRayon(bible, fr.value); }, 200);
+  });
+  if (filtre) { fr.focus(); fr.selectionStart = fr.selectionEnd = fr.value.length; }
+  else window.scrollTo(0, 0);
   document.title = r.nom + ' — ' + META.titre;
 }
 
@@ -515,6 +609,15 @@ async function vueAccueil() {
   out += parRayon.map(r =>
     `<li><a href="#/r/${r.id}"><span class="n">${r.ico} ${ech(r.nom)}</span>` +
     `<span class="x">${r.n} fiches</span></a></li>`).join('') + '</ul>';
+
+  // reprendre où on en était — mémoire locale de l'appareil, rien en ligne
+  let repris = [];
+  try {
+    repris = JSON.parse(localStorage.getItem('hw.vu') || '[]')
+      .map(x => CAT.get(x)).filter(Boolean).slice(0, 5);
+  } catch (e) { }
+  if (repris.length)
+    out += `<h2>📖 Reprendre la lecture</h2><ul class="liste">${repris.map(carte).join('')}</ul>`;
 
   out += `<h2>🎲 À découvrir</h2><ul class="liste">${surpr.map(carte).join('')}</ul>`;
 
@@ -631,7 +734,7 @@ async function tenter(phrase, memoriser) {
   META = await (await fetch('meta.json', { cache: 'no-cache' })).json();
   SEL = deb64(META.sel);
   $('#porte-titre').textContent = META.titre;
-  $('#porte-sous').textContent = META.sous_titre || '';
+  $('#porte-sous').textContent = META.porte || META.sous_titre || '';
   document.title = META.titre;
 
   if (!window.DecompressionStream) {

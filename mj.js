@@ -549,12 +549,28 @@ window.vueMJ = async function (sous) {
   const nExc = Object.values(exc.voit || {}).flat().length
     + Object.values(exc.voit_pas || {}).flat().length;
 
+  const repli = (titre, corps, ouvert) =>
+    `<details class="cat"${ouvert ? ' open' : ''}><summary><span>${titre}</span></summary>
+     <div class="repli-corps">${corps}</div></details>`;
+
   $('#vue').innerHTML = `
     <h1 class="tt">🛠 Page MJ</h1>
     <p class="meta"><span>générée le ${ech(a.genere_le || '?')}</span>
-    <span>${st.fragments || '?'} fragments</span><span>${st.coffres || '?'} coffres</span></p>
+    <span>jeton d'édition ${jeton.lire() ? '✓' : '✗ <a href="#/mj/jeton">à poser</a>'}</span></p>
 
-    <h2>Accès</h2>
+    <p class="mj-actions">
+      <a class="puce" data-page="episode">➕ Résumé d'épisode</a>
+      <a class="puce" data-page="journal">➕ Journal</a>
+      <a class="puce" data-page="aide">➕ Aide de jeu</a>
+      <a class="puce" href="#/mj/config">⚙ Groupes & joueurs</a>
+      <a class="puce" href="#/mj/jeton">🔐 Jeton</a>
+    </p>
+    <p class="mj-actions">Voir le site comme :
+      ${(a.acces || []).filter(j => !j.mj).map(j =>
+        `<a class="puce" data-voir="${ech(j.nom)}">👁 ${ech(j.nom)}</a>`).join(' ') || 'aucun joueur'}
+    </p>
+
+    ${repli('🔑 Accès des joueurs', `
     <div class="tw"><table><thead><tr><th>Qui</th><th>Voit</th><th>Phrase</th><th></th></tr></thead>
     <tbody>${(a.acces || []).map(j => {
       const vue = (a.vues || {})[j.nom] || {};
@@ -568,58 +584,35 @@ window.vueMJ = async function (sous) {
           <a class="suppr" data-rot="${ech(j.nom)}">🔑 nouvelle phrase</a></td></tr>`;
     }).join('')}
     </tbody></table></div>
-    <p class="meta"><span>⚠ un lien vaut la phrase : chacun ne reçoit que le sien</span></p>
+    <p class="meta"><span>⚠ un lien vaut la phrase : chacun ne reçoit que le sien</span></p>`, true)}
 
-    <h2>Créer une page</h2>
-    <p>Une nouvelle page dans 📜 La chronique, prête à remplir :
-    <a class="puce" data-page="episode">➕ Résumé d'épisode</a>
-    <a class="puce" data-page="journal">➕ Journal</a>
-    <a class="puce" data-page="aide">➕ Aide de jeu</a></p>
+    ${repli(`📜 Révélations & exceptions — ${revs.length} · ${nExc}`, `
+    <p>${revs.length} révélation(s) actée(s) · ${nExc} exception(s) nominative(s).</p>
+    ${revs.length ? '<ul>' + revs.map(r => `<li><b>${ech(r.date || '')}</b> — ${ech(r.episode || '')}
+      (${(r.ouvre || []).length} ouverture(s), groupe ${ech(r.groupe || '?')})</li>`).join('') + '</ul>' : ''}
+    <p>Révélations : <code>campagne.yml</code> → <code>revelations:</code> (GUIDE.md).
+    Exceptions et paliers par joueur : <a href="#/mj/config">⚙ Groupes & joueurs</a>.
+    Pour modifier une fiche : ouvre-la et touche ✏️ (les 5 balises s'insèrent d'un bouton).</p>`)}
 
-    <h2>Voir le site comme…</h2>
-    <p>Le site tel que ce joueur le voit — mêmes clés, rien de plus. La bannière
-    en bas de l'écran te ramène ici.</p>
-    <p>${(a.acces || []).filter(j => !j.mj).map(j =>
-      `<a class="puce" data-voir="${ech(j.nom)}">👁 ${ech(j.nom)}</a>`).join(' ') || 'aucun joueur'}</p>
-
-    <h2>Groupes, joueurs et permissions</h2>
-    <p><a class="puce" href="#/mj/config">⚙ Gérer les groupes et les joueurs</a> —
-    renommer, ajouter, retirer, changer un palier ou une exception.</p>
+    ${repli('📊 Le corpus & les groupes', `
     <div class="tw"><table><thead><tr><th>Groupe</th><th>Palier</th></tr></thead><tbody>
     ${groupes.map(([id, g]) => `<tr><td>${ech(g.nom || id)}</td><td>${ech(g.palier || '?')}</td></tr>`).join('')
     || '<tr><td colspan=2>aucun</td></tr>'}</tbody></table></div>
-
-    <h2>Le corpus</h2>
     <div class="tw"><table><thead><tr><th>Bible</th><th>Fiches</th></tr></thead><tbody>
     ${Object.entries(st.fiches || {}).map(([b, n]) => `<tr><td>${ech(b)}</td><td>${n}</td></tr>`).join('')}
     </tbody></table></div>
     <div class="tw"><table><thead><tr><th>Palier</th><th>Fiches</th></tr></thead><tbody>
     ${Object.entries(st.paliers || {}).map(([p, n]) => `<tr><td>${ech(p)}</td><td>${n}</td></tr>`).join('')}
     </tbody></table></div>
+    <p class="meta"><span>${st.fragments || '?'} fragments · ${st.coffres || '?'} coffres</span></p>`)}
 
-    <h2>Révélations & exceptions</h2>
-    <p>${revs.length} révélation(s) actée(s) · ${nExc} exception(s) nominative(s).</p>
-    ${revs.length ? '<ul>' + revs.map(r => `<li><b>${ech(r.date || '')}</b> — ${ech(r.episode || '')}
-      (${(r.ouvre || []).length} ouverture(s), groupe ${ech(r.groupe || '?')})</li>`).join('') + '</ul>' : ''}
-    <p>Pour révéler, exclure, ajouter un joueur : <code>campagne.yml</code> sur ton PC, puis
-    <b>Publier</b> — le détail est dans GUIDE.md.</p>
-
-    <h2>Édition en direct</h2>
-    <p>Ouvre n'importe quelle fiche et touche <b>✏️ Modifier cette fiche</b>. La modification
-    est en ligne dans la minute, et sauvegardée dans tes sources : le prochain Publier ne
-    l'écrasera pas. Jeton d'édition : ${jeton.lire() ? '✓ enregistré' : '✗ absent'} —
-    <a href="#/mj/jeton">gérer</a>.</p>
-
-    <h2>Fréquentation</h2>
-    <p>Les visites du site (14 derniers jours, comptées par GitHub, rien
-    d'ajouté au site) : <a href="https://github.com/${ech(a.depots.public)}/graphs/traffic"
-    target="_blank" rel="noopener">ouvrir les statistiques ↗</a> — connecté à
-    ton compte GitHub.</p>
-
-    <h2>Réglages avancés</h2>
+    ${repli('📈 Fréquentation & réglages', `
+    <p>Visites des 14 derniers jours (comptées par GitHub, rien d'ajouté au site) :
+    <a href="https://github.com/${ech(a.depots.public)}/graphs/traffic"
+    target="_blank" rel="noopener">ouvrir les statistiques ↗</a></p>
     <div class="tw"><table><tbody>
     ${Object.entries(cfg.avance || {}).map(([k, v]) => `<tr><td><code>${ech(k)}</code></td><td>${ech(String(v))}</td></tr>`).join('')}
-    </tbody></table></div>`;
+    </tbody></table></div>`)}`;
   window.scrollTo(0, 0);
   document.title = 'Page MJ — ' + META.titre;
   document.querySelectorAll('.copie').forEach(el => el.onclick = async () => {

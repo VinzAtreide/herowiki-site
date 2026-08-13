@@ -166,6 +166,24 @@ mark{background:#f2c14e44;color:#fff;border-radius:3px;padding:0 2px}
 .liste .x{display:block;color:var(--gris);font-size:.85rem;margin-top:3px;
   font-family:system-ui,sans-serif}
 .rien{color:var(--gris);text-align:center;padding:3em 1em}
+.champ-rayon{margin:0 0 1em}
+.champ-rayon input{flex:1;padding:11px 14px;border:0;background:none;color:var(--texte)}
+.champ-rayon input:focus{outline:none}
+.mj-actions{margin:.1em 0 .9em}
+.de-barre{display:flex;gap:12px;align-items:center;margin:0 0 .5em;flex-wrap:wrap}
+.de-btn{padding:7px 14px;font-size:.9rem}
+.de-resultat{color:var(--texte);font-family:system-ui,sans-serif;font-size:.92rem}
+.de-resultat b{color:var(--or);font-size:1.1rem}
+tr.de-touche td{background:#f2c14e26;box-shadow:inset 3px 0 0 var(--or)}
+details.sous{margin:.5em 0 .5em 10px}
+details.sous summary{display:flex;justify-content:space-between;cursor:pointer;
+  font-weight:600;color:var(--texte);padding:7px 4px;border-bottom:1px dashed var(--trait);
+  list-style:none;user-select:none}
+details.sous summary::-webkit-details-marker{display:none}
+details.sous summary span::before{content:"▸";color:var(--bleu);margin-right:8px;
+  display:inline-block;transition:transform .15s}
+details.sous[open] summary span::before{transform:rotate(90deg)}
+details.sous summary i{font-style:normal;color:var(--gris);font-size:.78rem;font-weight:400}
 details.cat{margin:1.2em 0 0;scroll-margin-top:64px}
 details.cat summary{display:flex;justify-content:space-between;align-items:baseline;
   border-bottom:2px solid var(--trait);padding-bottom:6px;cursor:pointer;
@@ -208,6 +226,7 @@ details.cat summary i{font-style:normal;color:var(--gris);font-size:.8rem;font-w
   background:var(--fond3);color:var(--texte);cursor:pointer}
 .btn3{padding:10px 14px;color:var(--gris)}
 .btn-fichier{cursor:pointer}
+.repli-corps{padding-top:.6em}
 .petit{font-size:.9rem}
 #ed-apercu{border-top:1px dashed var(--trait);margin-top:14px;padding-top:14px}
 #pat{width:100%;padding:12px 14px;border:0;background:none;color:var(--texte)}
