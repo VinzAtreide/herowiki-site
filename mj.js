@@ -384,7 +384,7 @@ window.editerFiche = async function (h) {
     <div class="ed-b">
       <button id="ed-voir" class="btn2">Aperçu</button>
       <button id="ed-ok" class="btn1">Publier la modification</button>
-      <label class="btn2" style="cursor:pointer">🖼 Visuel…
+      <label class="btn2 btn-fichier">🖼 Visuel…
         <input id="ed-img" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
       <a href="#/f/${h}" class="btn3">Annuler</a>
     </div>
@@ -641,13 +641,18 @@ async function vueConfig(a) {
       <p><a class="puce" id="aj-groupe">+ Ajouter un groupe</a></p>
 
       <h2>Joueurs</h2>
-      <p>« Palier » règle la permission fine de CE joueur ; laissé sur
-      « celui du groupe », il suit son groupe.</p>
-      <div class="tw"><table><thead><tr><th>Nom</th><th>Rôle</th><th>Groupe</th><th>Palier</th><th></th></tr></thead><tbody>
+      <p>« Palier » règle la permission fine de CE joueur ; « Personnage »
+      relie sa fiche (elle s'affiche sur son accueil, avec son statbloc).</p>
+      <div class="tw"><table><thead><tr><th>Nom</th><th>Rôle</th><th>Groupe</th><th>Palier</th><th>Personnage</th><th></th></tr></thead><tbody>
       ${cfg.joueurs.map((j, i) => {
         const mj = String(j.role || '').toLowerCase() === 'mj';
         const optP = ['', ...PALIERS_L.slice(0, 4)].map(p =>
           `<option value="${p}"${(j.palier || '') === p ? ' selected' : ''}>${p || '(celui du groupe)'}</option>`).join('');
+        const fichesPJ = Object.values(a.fiches || {}).filter(x => x.b === 'pj');
+        const optPJ = ['', ...fichesPJ.map(x => x.c)].map(c => {
+          const f = fichesPJ.find(x => x.c === c);
+          return `<option value="${ech(c)}"${(j.pj || '') === c ? ' selected' : ''}>${f ? ech(f.n) : '(aucun)'}</option>`;
+        }).join('');
         return `<tr>
         <td><input class="cfg-in" data-j="${i}" data-k="nom" value="${ech(j.nom || '')}"></td>
         <td><select class="cfg-in" data-j="${i}" data-k="role">
@@ -655,6 +660,7 @@ async function vueConfig(a) {
           <option value="mj"${mj ? ' selected' : ''}>MJ</option></select></td>
         <td>${mj ? '—' : `<select class="cfg-in" data-j="${i}" data-k="groupe">${optG(j.groupe)}</select>`}</td>
         <td>${mj ? 'tout' : `<select class="cfg-in" data-j="${i}" data-k="palier">${optP}</select>`}</td>
+        <td>${mj ? '—' : `<select class="cfg-in" data-j="${i}" data-k="pj">${optPJ}</select>`}</td>
         <td><a class="suppr" data-sj="${i}">retirer</a></td></tr>`;
       }).join('')}
       </tbody></table></div>
@@ -691,6 +697,7 @@ async function vueConfig(a) {
         const j = cfg.joueurs[+el.dataset.j];
         if (k === 'role') { if (v === 'mj') { j.role = 'mj'; delete j.groupe; delete j.pj; } else delete j.role; }
         else if (k === 'palier') { if (v) j.palier = v; else delete j.palier; }
+        else if (k === 'pj') { if (v) j.pj = v; else delete j.pj; }
         else j[k] = v;
       }
     });

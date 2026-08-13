@@ -344,8 +344,10 @@ async function vueFiche(h) {
     if (e.hz === 'scenario')
       out += `<div class="bandeau">⚠ Ce qui suit n'existe que si l'aventure est jouée : ` +
         `rien n'en est encore vrai dans le monde.</div>`;
-    if (e.img) out += `<div class="visuel" id="visuel"></div>`;
-    if (e.h) out += `<div class="entree">${e.h}</div>`;
+    if (e.img || e.h)
+      out += `<div class="tete">` +
+        (e.img ? `<figure class="portrait" id="visuel"></figure>` : '') +
+        (e.h ? `<div class="entree">${e.h}</div>` : '') + `</div>`;
     if (e.tg && e.tg.length)
       out += `<p>${e.tg.map(t => `<a class="puce" href="#/t/${encodeURIComponent(t)}">${ech(String(t))}</a>`).join('')}</p>`;
   }
@@ -379,6 +381,32 @@ async function chargerVisuel(h) {
   if (d && el) el.innerHTML = `<img src="data:${d.m};base64,${d.d}" alt="">`;
 }
 
+/** Le rayon des règles se feuillette par catégorie (Pouvoir, Équipement,
+ *  Option de règles…), pas par alphabet : personne ne cherche « Absorption
+ *  cinétique » sans savoir d'abord qu'il cherche un pouvoir. */
+function listeParCategories(items) {
+  if (!items.length) return `<p class="rien">Rien ici.</p>`;
+  const cats = new Map();
+  for (const e of items) {
+    const k = e.k || 'Autres';
+    if (!cats.has(k)) cats.set(k, []);
+    cats.get(k).push(e);
+  }
+  const ordre = [...cats.entries()].sort((a, b) => b[1].length - a[1].length);
+  // pas de vraies ancres : un « # » dans l'adresse relancerait le routeur
+  let out = '<p>' + ordre.map(([k]) =>
+    `<a class="puce" data-cat="${ech(k)}">${ech(k)} ${cats.get(k).length}</a>`).join('') + '</p>';
+  for (const [k, l] of ordre) {
+    out += `<h2 class="cat" data-c="${ech(k)}">${ech(k)} <i>${l.length}</i></h2>` +
+      '<ul class="liste">' + l.map(carte).join('') + '</ul>';
+  }
+  setTimeout(() => document.querySelectorAll('[data-cat]').forEach(a => a.onclick = () => {
+    const cible = [...document.querySelectorAll('h2.cat')].find(h => h.dataset.c === a.dataset.cat);
+    if (cible) cible.scrollIntoView({ behavior: 'smooth' });
+  }), 0);
+  return out;
+}
+
 function vueRayon(bible, filtre) {
   const f = nrm(filtre || '');
   let items = ORDRE.filter(e => e.b === bible);
@@ -386,7 +414,7 @@ function vueRayon(bible, filtre) {
   const r = RAYONS.find(x => x.id === bible) || { nom: bible, ico: '' };
   $('#vue').innerHTML = `<h1 class="tt">${r.ico} ${ech(r.nom)}</h1>` +
     `<p class="meta"><span>${items.length} fiche${items.length > 1 ? 's' : ''}</span></p>` +
-    listeAvecLettres(items);
+    (bible === 'regles' && !f ? listeParCategories(items) : listeAvecLettres(items));
   window.scrollTo(0, 0);
   document.title = r.nom + ' — ' + META.titre;
 }
@@ -444,7 +472,7 @@ async function vueAccueil() {
 
   if (MOI.pjh && CAT.has(MOI.pjh)) {
     const moi = CAT.get(MOI.pjh);
-    out += `<h2>⭐ ${ech(moi.n)}${moi.t ? ` <span class="stt" style="font-size:.9rem">${ech(moi.t)}</span>` : ''}</h2>
+    out += `<h2>⭐ ${ech(moi.n)}${moi.t ? ` <span class="stt petit">${ech(moi.t)}</span>` : ''}</h2>
       <div class="visuel" id="visuel"></div>
       <p><a class="puce" href="#/f/${MOI.pjh}">Ouvrir ma fiche complète</a></p>
       <div id="accueil-statbloc"></div>`;
