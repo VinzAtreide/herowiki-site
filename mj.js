@@ -380,6 +380,9 @@ window.editerFiche = async function (h) {
   $('#vue').innerHTML = `
     <h1 class="tt">✏️ ${ech(info.n)}</h1>
     <p class="meta"><span>${ech(info.c)}</span></p>
+    <p class="meta"><span>insérer une rubrique :</span>
+      ${['Grand public', 'Super', 'Secret', 'Très secret', 'MJ only'].map((b, i) =>
+        `<a class="puce bal-ins b${i}" data-bal="${b}">[${b}]</a>`).join('')}</p>
     <textarea id="ed" spellcheck="false">${ech(src)}</textarea>
     <div class="ed-b">
       <button id="ed-voir" class="btn2">Aperçu</button>
@@ -392,6 +395,17 @@ window.editerFiche = async function (h) {
     <div id="ed-apercu"></div>`;
   window.scrollTo(0, 0);
   const msg = t => { $('#ed-msg').className = 'msg ok'; $('#ed-msg').textContent = t; };
+
+  // insère « ## [Balise] » au curseur — plus rapide que de la taper sans faute
+  document.querySelectorAll('.bal-ins').forEach(el => el.onclick = () => {
+    const ta = $('#ed');
+    const bloc = `\n## [${el.dataset.bal}] Titre de la rubrique\n\n`;
+    const p = ta.selectionStart;
+    ta.value = ta.value.slice(0, p) + bloc + ta.value.slice(ta.selectionEnd);
+    ta.focus();
+    ta.selectionStart = p + bloc.indexOf('Titre');
+    ta.selectionEnd = p + bloc.indexOf(' de la rubrique') + 15;
+  });
 
   // Un visuel : l'original part dans le dépôt privé, la version chiffrée
   // (clé du coffre de l'entrée) dans le dépôt public, et la ligne `visuel:`
@@ -550,10 +564,17 @@ window.vueMJ = async function (sous) {
       return `<tr><td><b>${ech(j.nom)}</b></td>
       <td>${j.mj ? 'tout (MJ)' : ech(j.groupe || '—') + ' · ' + noms[palier]}</td>
       <td><code>${ech(j.phrase)}</code></td>
-      <td>${j.lien ? `<a class="copie" data-c="${ech(j.lien)}">copier le lien</a>` : ''}</td></tr>`;
+      <td>${j.lien ? `<a class="copie" data-c="${ech(j.lien)}">copier le lien</a><br>` : ''}
+          <a class="suppr" data-rot="${ech(j.nom)}">🔑 nouvelle phrase</a></td></tr>`;
     }).join('')}
     </tbody></table></div>
     <p class="meta"><span>⚠ un lien vaut la phrase : chacun ne reçoit que le sien</span></p>
+
+    <h2>Créer une page</h2>
+    <p>Une nouvelle page dans 📜 La chronique, prête à remplir :
+    <a class="puce" data-page="episode">➕ Résumé d'épisode</a>
+    <a class="puce" data-page="journal">➕ Journal</a>
+    <a class="puce" data-page="aide">➕ Aide de jeu</a></p>
 
     <h2>Voir le site comme…</h2>
     <p>Le site tel que ce joueur le voit — mêmes clés, rien de plus. La bannière
@@ -607,7 +628,95 @@ window.vueMJ = async function (sous) {
   });
   document.querySelectorAll('[data-voir]').forEach(el =>
     el.onclick = () => voirComme(el.dataset.voir));
+  document.querySelectorAll('[data-rot]').forEach(el => el.onclick = async () => {
+    const nom = el.dataset.rot;
+    if (!confirm(`Donner une phrase de passe NEUVE à « ${nom} » ?\n`
+      + `L'ancienne (et son lien) cesseront de fonctionner à la régénération (~3 min).`)) return;
+    if (!jeton.lire()) { location.hash = '#/mj/jeton'; return; }
+    try {
+      const cfg = JSON.parse(JSON.stringify(a.config));
+      cfg.avance = cfg.avance || {};
+      cfg.avance.rotation = [...new Set([...(cfg.avance.rotation || []), nom])];
+      await sauverCampagne(cfg, `MJ : nouvelle phrase pour ${nom}`);
+      el.textContent = '✓ demandée — nouvelle phrase ici dans ~3 min';
+    } catch (e) { alert(e.message); }
+  });
+  document.querySelectorAll('[data-page]').forEach(el => el.onclick = () => creerPage(el.dataset.page));
 };
+
+/* ── création de pages depuis les gabarits ──────────────────────────────── */
+
+const GABARITS = {
+  episode: {
+    nom: "Résumé d'épisode", type: "Résumé d'épisode", conf: "Grand public",
+    corps: `Deux ou trois phrases : où en est l'histoire après cet épisode.
+
+## [Grand public] Ce qui s'est passé
+
+Le récit de la séance, tel que les personnages l'ont vécu.
+
+## [Grand public] Ce que nous avons appris
+
+- @Quelqu'un cache quelque chose…
+- Un lieu, un nom, une piste.
+
+## [MJ only] Notes de derrière l'écran
+
+Ce que les joueurs n'ont pas vu, les graines plantées, à ne pas oublier.`,
+  },
+  journal: {
+    nom: 'Journal', type: 'Journal', conf: 'Grand public',
+    corps: `Un journal tenu à la première personne — par un personnage, ou par le groupe.
+
+## [Grand public] L'entrée du jour
+
+Le texte du journal.`,
+  },
+  aide: {
+    nom: 'Aide de jeu', type: 'Aide de jeu', conf: 'Grand public',
+    corps: `À quoi sert cette aide, en une phrase.
+
+## [Grand public] L'essentiel
+
+Le contenu : règle maison, carte, chronologie, mémo…
+
+## [MJ only] Côté MJ
+
+Ce que cette aide ne dit pas aux joueurs.`,
+  },
+};
+
+async function creerPage(quoi) {
+  const g = GABARITS[quoi];
+  if (!g) return;
+  if (!jeton.lire()) { location.hash = '#/mj/jeton'; return; }
+  const titre = prompt(`Titre de la nouvelle page « ${g.nom} » ?`,
+    quoi === 'episode' ? 'Épisode 1 — ' : '');
+  if (!titre) return;
+  const slug = slugMJ(titre);
+  const id = 'campagne-' + slug;
+  const source = `---
+id: ${id}
+nom: "${titre.replace(/"/g, "'")}"
+bible: campagne
+type_kanka: Journal
+type: "${g.type}"
+tags: [Chronique]
+horizon: etabli
+confidentialite: ${g.conf}
+etat: complet
+---
+
+${g.corps}
+`;
+  try {
+    await gh('PUT', ADMIN.depots.prive, `fiches/campagne/${slug}.md`, {
+      message: `nouvelle page : ${titre}`, content: b64utf8(source), branch: 'main',
+    });
+    alert(`« ${titre} » créée. Le robot la met en ligne dans ~3 minutes — elle apparaîtra `
+      + `dans le rayon 📜 La chronique. Tu pourras alors l'ouvrir et la modifier avec ✏️.`);
+  } catch (e) { alert(e.message); }
+}
 
 /* ── gestion des groupes, joueurs et permissions ────────────────────────── */
 

@@ -299,8 +299,19 @@ const RAYONS = [
   { id: 'lore', nom: 'Le monde', ico: '🌍' },
   { id: 'pnj', nom: 'Les personnages', ico: '🦸' },
   { id: 'regles', nom: 'Les règles', ico: '📖' },
+  { id: 'campagne', nom: 'La chronique', ico: '📜' },
   { id: 'pj', nom: 'Nos personnages', ico: '⭐' },
 ];
+
+/* L'ordre de lecture de chaque rayon : les catégories citées d'abord, dans
+   cet ordre ; les autres suivent par taille. L'alphabet ne sert qu'à
+   l'intérieur d'une catégorie. */
+const CAT_ORDRE = {
+  lore: ['Lieu', 'Quartier général', 'Organisation', 'Événement', 'Espèce', 'Artefact'],
+  pnj: ['Héros', 'Vilain', 'Personnalité', 'Figurant', 'Créature', 'Archétype'],
+  regles: ['Pouvoir', 'Talent', 'Équipement', 'Véhicule', 'Option de règles'],
+  campagne: ["Résumé d'épisode", 'Journal', 'Aide de jeu'],
+};
 const BAL = { 'Grand public': 0, 'Super': 1, 'Secret': 2, 'Très secret': 3, 'MJ only': 4 };
 
 function liens(el) {
@@ -357,12 +368,20 @@ async function vueFiche(h) {
       `<span class="bal b${b}">${ech(r.d.bal || '')}</span></h2>${r.d.h}</section>`;
   }
   if (MOI.mj && window.editerFiche)
-    out += `<p><a class="puce" id="mj-editer">✏️ Modifier cette fiche (MJ)</a></p>`;
+    out += `<p><a class="puce" id="mj-editer">✏️ Modifier cette fiche (MJ)</a>
+      <a class="puce" id="mj-mention">📋 Copier la mention @</a></p>`;
   $('#vue').innerHTML = out;
   if (e && e.img) chargerVisuel(h);
   liens($('#vue'));
   const be = $('#mj-editer');
   if (be) be.onclick = () => editerFiche(h);
+  const bm = $('#mj-mention');
+  if (bm) bm.onclick = async () => {
+    // collée dans une autre fiche, cette mention devient un lien au rendu
+    const m = '@' + (e ? e.n : '');
+    try { await navigator.clipboard.writeText(m); bm.textContent = `✓ ${m} copié`; }
+    catch (err) { prompt('Copie cette mention :', m); }
+  };
   window.scrollTo(0, 0);
   document.title = (e ? e.n + ' — ' : '') + META.titre;
 }
@@ -381,10 +400,10 @@ async function chargerVisuel(h) {
   if (d && el) el.innerHTML = `<img src="data:${d.m};base64,${d.d}" alt="">`;
 }
 
-/** Le rayon des règles se feuillette par catégorie (Pouvoir, Équipement,
- *  Option de règles…), pas par alphabet : personne ne cherche « Absorption
- *  cinétique » sans savoir d'abord qu'il cherche un pouvoir. */
-function listeParCategories(items) {
+/** Un rayon se feuillette par catégorie, pas par alphabet : personne ne
+ *  cherche « Absorption cinétique » sans savoir d'abord qu'il cherche un
+ *  pouvoir. Chaque catégorie se replie d'un toucher. */
+function listeParCategories(items, bible) {
   if (!items.length) return `<p class="rien">Rien ici.</p>`;
   const cats = new Map();
   for (const e of items) {
@@ -392,17 +411,23 @@ function listeParCategories(items) {
     if (!cats.has(k)) cats.set(k, []);
     cats.get(k).push(e);
   }
-  const ordre = [...cats.entries()].sort((a, b) => b[1].length - a[1].length);
+  const pref = CAT_ORDRE[bible] || [];
+  const ordre = [...cats.entries()].sort((a, b) => {
+    const ia = pref.indexOf(a[0]), ib = pref.indexOf(b[0]);
+    if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    return b[1].length - a[1].length;
+  });
   // pas de vraies ancres : un « # » dans l'adresse relancerait le routeur
-  let out = '<p>' + ordre.map(([k]) =>
-    `<a class="puce" data-cat="${ech(k)}">${ech(k)} ${cats.get(k).length}</a>`).join('') + '</p>';
+  let out = '<p>' + ordre.map(([k, l]) =>
+    `<a class="puce" data-cat="${ech(k)}">${ech(k)} ${l.length}</a>`).join('') + '</p>';
   for (const [k, l] of ordre) {
-    out += `<h2 class="cat" data-c="${ech(k)}">${ech(k)} <i>${l.length}</i></h2>` +
-      '<ul class="liste">' + l.map(carte).join('') + '</ul>';
+    out += `<details class="cat" open data-c="${ech(k)}">` +
+      `<summary><span>${ech(k)}</span> <i>${l.length}</i></summary>` +
+      '<ul class="liste">' + l.map(carte).join('') + '</ul></details>';
   }
   setTimeout(() => document.querySelectorAll('[data-cat]').forEach(a => a.onclick = () => {
-    const cible = [...document.querySelectorAll('h2.cat')].find(h => h.dataset.c === a.dataset.cat);
-    if (cible) cible.scrollIntoView({ behavior: 'smooth' });
+    const cible = [...document.querySelectorAll('details.cat')].find(d => d.dataset.c === a.dataset.cat);
+    if (cible) { cible.open = true; cible.scrollIntoView({ behavior: 'smooth' }); }
   }), 0);
   return out;
 }
@@ -412,9 +437,10 @@ function vueRayon(bible, filtre) {
   let items = ORDRE.filter(e => e.b === bible);
   if (f) items = items.filter(e => nrm(e.n).includes(f) || nrm(e.t || '').includes(f));
   const r = RAYONS.find(x => x.id === bible) || { nom: bible, ico: '' };
+  const parCats = ['lore', 'pnj', 'regles', 'campagne'].includes(bible) && !f;
   $('#vue').innerHTML = `<h1 class="tt">${r.ico} ${ech(r.nom)}</h1>` +
     `<p class="meta"><span>${items.length} fiche${items.length > 1 ? 's' : ''}</span></p>` +
-    (bible === 'regles' && !f ? listeParCategories(items) : listeAvecLettres(items));
+    (parCats ? listeParCategories(items, bible) : listeAvecLettres(items));
   window.scrollTo(0, 0);
   document.title = r.nom + ' — ' + META.titre;
 }
