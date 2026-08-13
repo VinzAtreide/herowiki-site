@@ -5,8 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0d1117">
+<!-- Le site n'a besoin de rien d'extérieur : on l'interdit. Une extension
+     douteuse ou un contenu injecté ne peut ni charger ni exécuter ailleurs. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; base-uri 'none'; object-src 'none'">
 <title>HeroWiki</title>
 <link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icone.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#9889;</text></svg>">
 </head>
 <body>
@@ -17,8 +23,12 @@
     <div class="eclair">⚡</div>
     <h1 id="porte-titre">HeroWiki</h1>
     <p id="porte-sous" class="sous"></p>
-    <input id="phrase" type="password" inputmode="text" autocapitalize="none"
-           autocorrect="off" spellcheck="false" placeholder="ta phrase de passe">
+    <div class="champ">
+      <input id="phrase" type="password" inputmode="text" autocapitalize="none"
+             autocorrect="off" spellcheck="false" autocomplete="current-password"
+             placeholder="ta phrase de passe">
+      <button id="voirph" type="button" class="ico" title="Afficher la phrase">👁</button>
+    </div>
     <button id="porte-ok" type="submit">Entrer</button>
     <label class="memo"><input type="checkbox" id="memo" checked> Se souvenir de moi sur cet appareil</label>
     <p id="porte-msg" class="msg"></p>

@@ -472,12 +472,15 @@ async function demarrer(tr) {
 }
 
 async function tenter(phrase, memoriser) {
-  const k = await cleDePhrase(phrase);
-  const tr = await ouvrirTrousseau(k);
-  if (!tr) return false;
-  if (memoriser) try { localStorage.setItem('hw.k', btoa(String.fromCharCode(...k))); } catch (e) { }
-  await demarrer(tr);
-  return true;
+  document.body.classList.add('travail');
+  try {
+    const k = await cleDePhrase(phrase);
+    const tr = await ouvrirTrousseau(k);
+    if (!tr) return false;
+    if (memoriser) try { localStorage.setItem('hw.k', btoa(String.fromCharCode(...k))); } catch (e) { }
+    await demarrer(tr);
+    return true;
+  } finally { document.body.classList.remove('travail'); }
 }
 
 (async function () {
@@ -490,6 +493,15 @@ async function tenter(phrase, memoriser) {
   if (!window.DecompressionStream) {
     $('#porte-msg').textContent = "Ce navigateur est trop ancien. Essaie Chrome, Edge, Firefox ou Safari récent.";
     return;
+  }
+
+  // lien direct : la phrase voyage dans le fragment (#), qui ne part jamais
+  // sur le réseau. On l'efface de la barre et de l'historique aussitôt lue.
+  const lien = location.hash.match(/^#\/?cle=(.+)$/);
+  if (lien) {
+    history.replaceState(null, '', location.pathname + location.search);
+    if (await tenter(decodeURIComponent(lien[1]), true)) return;
+    $('#porte-msg').textContent = "Ce lien d'accès n'est plus valable — demande le nouveau au MJ.";
   }
 
   // reprise silencieuse
@@ -522,6 +534,11 @@ async function tenter(phrase, memoriser) {
 /* ── interactions ───────────────────────────────────────────────────────── */
 
 window.addEventListener('hashchange', router);
+$('#voirph').onclick = () => {
+  const p = $('#phrase');
+  p.type = p.type === 'password' ? 'text' : 'password';
+  p.focus();
+};
 $('#menu').onclick = () => document.body.classList.toggle('ouvert');
 $('#voile').onclick = fermerCote;
 

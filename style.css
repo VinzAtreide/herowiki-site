@@ -30,9 +30,16 @@ button,input{font-family:inherit;font-size:1rem}
 .eclair{font-size:48px;line-height:1;filter:drop-shadow(0 0 18px #f2c14e66)}
 #porte h1{font-size:2rem;margin:.4em 0 .1em;letter-spacing:.02em}
 #porte .sous{color:var(--gris);margin:0 0 1.8em;font-size:.95rem}
-#phrase{width:100%;padding:14px 16px;border-radius:var(--r);border:1px solid var(--trait);
-  background:var(--fond2);color:var(--texte);text-align:center;letter-spacing:.02em}
-#phrase:focus{outline:none;border-color:var(--or)}
+.champ{display:flex;align-items:center;border:1px solid var(--trait);
+  border-radius:var(--r);background:var(--fond2)}
+.champ:focus-within{border-color:var(--or)}
+#phrase{flex:1;min-width:0;padding:14px 4px 14px 16px;border:0;background:none;
+  color:var(--texte);text-align:center;letter-spacing:.02em}
+#phrase:focus{outline:none}
+#voirph{flex:none;margin-right:6px}
+/* pendant le calcul de la clé, l'éclair bat : le téléphone travaille */
+.travail .eclair{animation:bat 1s ease-in-out infinite}
+@keyframes bat{50%{opacity:.35;transform:scale(.9)}}
 #porte-ok{width:100%;margin-top:12px;padding:14px;border:0;border-radius:var(--r);
   background:var(--or);color:#231b06;font-weight:700;cursor:pointer}
 #porte-ok:disabled{opacity:.55;cursor:progress}
