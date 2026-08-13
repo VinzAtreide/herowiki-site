@@ -219,14 +219,17 @@ async function chercher(requete) {
     return { h, s, ou: [...ou].sort((a, b) => a - b) };
   }).sort((a, b) => b.s - a.s).slice(0, 50);
 
-  // surlignage : on ne cherche l'extrait qu'après avoir classé, sur 50 fiches
+  // Surlignage. Les cinquante fragments sont demandés **d'un seul coup** :
+  // en série, chaque extrait coûtait un aller-retour réseau et la recherche
+  // mettait six secondes depuis un téléphone. En parallèle, elle en met moins
+  // d'une — c'est la même quantité d'octets, mais une seule attente.
   const motifs = mots.map(m => new RegExp(classes(m), 'gi'));
-  for (const r of res) {
+  await Promise.all(res.map(async r => {
     r.e = CAT.get(r.h) || { n: '(fiche)', t: '', k: '', b: '' };
     const o = r.ou.find(x => x > 0);
     const fr = await fragment(r.h, o === undefined ? 0 : o);
     r.extrait = fr ? extrait(texteNu(fr.h || ''), motifs, fr.t || '') : '';
-  }
+  }));
   return res;
 }
 
