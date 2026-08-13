@@ -343,6 +343,7 @@ async function vueFiche(h) {
     if (e.hz === 'scenario')
       out += `<div class="bandeau">⚠ Ce qui suit n'existe que si l'aventure est jouée : ` +
         `rien n'en est encore vrai dans le monde.</div>`;
+    if (e.img) out += `<div class="visuel" id="visuel"></div>`;
     if (e.h) out += `<div class="entree">${e.h}</div>`;
     if (e.tg && e.tg.length)
       out += `<p>${e.tg.map(t => `<a class="puce" href="#/t/${encodeURIComponent(t)}">${ech(String(t))}</a>`).join('')}</p>`;
@@ -355,11 +356,26 @@ async function vueFiche(h) {
   if (MOI.mj && window.editerFiche)
     out += `<p><a class="puce" id="mj-editer">✏️ Modifier cette fiche (MJ)</a></p>`;
   $('#vue').innerHTML = out;
+  if (e && e.img) chargerVisuel(h);
   liens($('#vue'));
   const be = $('#mj-editer');
   if (be) be.onclick = () => editerFiche(h);
   window.scrollTo(0, 0);
   document.title = (e ? e.n + ' — ' : '') + META.titre;
+}
+
+/** Le visuel d'une fiche est chiffré avec une clé dérivée du coffre de son
+ *  entrée : qui lit la fiche voit l'image, personne d'autre. */
+async function chargerVisuel(h) {
+  const c = await conteneur(h);
+  const b0 = c && c.f.find(x => x.o === 0);
+  const brut = b0 && TAGS.get(b0.v);
+  if (!brut) return;
+  const paquet = await prendre('img/' + h + '.bin');
+  if (!paquet) return;
+  const d = await ouvrir(await hkdf(brut, 'img:' + h), paquet);
+  const el = document.getElementById('visuel');
+  if (d && el) el.innerHTML = `<img src="data:${d.m};base64,${d.d}" alt="">`;
 }
 
 function vueRayon(bible, filtre) {
@@ -484,6 +500,7 @@ async function router() {
 /* ── démarrage ──────────────────────────────────────────────────────────── */
 
 async function demarrer(tr) {
+  window.TR_COURANT = tr;        // la page MJ s'en sert pour « voir comme »
   await installer(tr);
   $('#porte').hidden = true;
   $('#app').hidden = false;
