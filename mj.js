@@ -811,7 +811,7 @@ async function vueConfig(a) {
       <p><label><input type="checkbox" id="cfg-msg-actif"
         ${String((cfg.messagerie || {}).actif || '').toLowerCase().match(/^(oui|true|yes|1)$/) ? 'checked' : ''}>
         Messagerie active</label></p>
-      <p><input class="cfg-in cfg-url" id="cfg-msg-url"
+      <p><input class="cfg-url" id="cfg-msg-url"
         placeholder="https://…firebasedatabase.app"
         value="${ech((cfg.messagerie || {}).firebase_url || '')}"></p>
       <label>Contacts semés (carnet d'adresses)<br>
@@ -839,6 +839,7 @@ async function vueConfig(a) {
   function lireFormulaire() {
     document.querySelectorAll('.cfg-in').forEach(el => {
       const k = el.dataset.k, v = el.value.trim();
+      if (!k) return;                       // champ hors tableaux (garde-fou)
       if (el.dataset.g !== undefined) cfg.groupes[el.dataset.g][k] = v;
       else {
         const j = cfg.joueurs[+el.dataset.j];
