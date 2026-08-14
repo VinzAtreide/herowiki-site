@@ -326,6 +326,10 @@ details.releve summary i{font-style:normal;font-size:.66rem;color:var(--gris);
   font-family:system-ui,sans-serif}
 details.releve[open] summary i{display:none}
 .releve-corps{padding:0 14px 14px}
+/* les sous-titres d'une rubrique : des intercalaires, pas des titres */
+.rub h4{margin:1.4em 0 .4em;font-size:.74rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--or);font-family:system-ui,sans-serif}
+.rub h4:first-child{margin-top:.2em}
 section.rub.releve{border:1px solid var(--trait);border-radius:12px;
   padding:4px 14px 12px;background:linear-gradient(160deg,var(--fond2),var(--fond3))}
 .releve table{width:100%;border-collapse:separate;border-spacing:0;margin:10px 0;

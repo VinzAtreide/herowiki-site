@@ -406,7 +406,7 @@ async function vueFiche(h) {
     const b = BAL[r.d.bal] ?? 4;
     // le relevé d'aptitudes et le dossier scolaire portent l'habillage
     // « document officiel de l'académie »
-    const off = /aptitudes|statbloc|dossier scolaire/i.test(r.d.t || '') ? ' releve' : '';
+    const off = /aptitudes|statbloc|dossier scolaire|pour l'incarner/i.test(r.d.t || '') ? ' releve' : '';
     out += `<section class="rub${off}"><h2><span>${ech(r.d.t || '')}</span>` +
       `<span class="bal b${b}">${ech(r.d.bal || '')}</span></h2>${r.d.h}</section>`;
   }
