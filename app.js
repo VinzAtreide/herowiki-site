@@ -404,7 +404,10 @@ async function vueFiche(h) {
   }
   for (const r of f.rubriques) {
     const b = BAL[r.d.bal] ?? 4;
-    out += `<section class="rub"><h2><span>${ech(r.d.t || '')}</span>` +
+    // le relevé d'aptitudes et le dossier scolaire portent l'habillage
+    // « document officiel de l'académie »
+    const off = /aptitudes|statbloc|dossier scolaire/i.test(r.d.t || '') ? ' releve' : '';
+    out += `<section class="rub${off}"><h2><span>${ech(r.d.t || '')}</span>` +
       `<span class="bal b${b}">${ech(r.d.bal || '')}</span></h2>${r.d.h}</section>`;
   }
   $('#vue').innerHTML = out;
@@ -737,9 +740,13 @@ async function vueAccueil() {
       const f = await ficheEntiere(MOI.pjh);
       const el = document.getElementById('accueil-statbloc');
       if (!f || !el) return;
-      const sb = f.rubriques.find(r => /statbloc/i.test(r.d.t || ''));
+      const sb = f.rubriques.find(r => /statbloc|aptitudes/i.test(r.d.t || ''));
       if (sb) {
-        el.innerHTML = `<section class="rub"><h2><span>${ech(sb.d.t)}</span></h2>${sb.d.h}</section>`;
+        // Le relevé d'aptitudes : réductible, replié par défaut — la carte
+        // suffit au quotidien, le relevé se déplie quand on joue.
+        el.innerHTML = `<details class="releve">
+          <summary><span>📋 ${ech(sb.d.t)}</span><i>toucher pour consulter</i></summary>
+          <div class="releve-corps">${sb.d.h}</div></details>`;
         liens(el);
       }
     })();

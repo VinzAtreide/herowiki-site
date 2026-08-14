@@ -314,6 +314,32 @@ select.cfg-in{min-width:120px}
 .cfg-ctc{width:100%;max-width:520px;min-height:72px;padding:8px;border-radius:8px;
   border:1px solid var(--trait);background:var(--fond);color:var(--texte)}
 
+/* ── le relevé d'aptitudes & le dossier scolaire (documents officiels) ── */
+details.releve{border:1px solid var(--trait);border-radius:12px;overflow:hidden;
+  margin:14px 0;max-width:640px;
+  background:linear-gradient(160deg,var(--fond2),var(--fond3))}
+details.releve summary{cursor:pointer;padding:12px 14px;display:flex;
+  justify-content:space-between;align-items:center;list-style:none}
+details.releve summary::-webkit-details-marker{display:none}
+details.releve summary span{color:var(--or);letter-spacing:.05em}
+details.releve summary i{font-style:normal;font-size:.66rem;color:var(--gris);
+  font-family:system-ui,sans-serif}
+details.releve[open] summary i{display:none}
+.releve-corps{padding:0 14px 14px}
+section.rub.releve{border:1px solid var(--trait);border-radius:12px;
+  padding:4px 14px 12px;background:linear-gradient(160deg,var(--fond2),var(--fond3))}
+.releve table{width:100%;border-collapse:separate;border-spacing:0;margin:10px 0;
+  border:1px solid var(--trait);border-radius:10px;overflow:hidden}
+.releve th{background:#f2c14e14;color:var(--or);text-transform:uppercase;
+  font-size:.66rem;letter-spacing:.08em;padding:7px 6px;
+  font-family:system-ui,sans-serif}
+.releve td{padding:8px;border-top:1px solid var(--trait)}
+.releve tr:nth-child(even) td{background:#ffffff05}
+/* les tables de valeurs (5 colonnes et plus) : les chiffres en vitrine */
+.releve table:has(th:nth-child(5)) td{
+  text-align:center;font-family:ui-monospace,SFMono-Regular,monospace;
+  font-size:1.05rem;font-weight:600;color:var(--or)}
+
 /* ── la carte étudiante (accueil) ────────────────────────────────────── */
 .carte-etu{display:block;max-width:440px;border-radius:14px;overflow:hidden;
   border:1px solid var(--trait);background:linear-gradient(160deg,var(--fond2),var(--fond3));
