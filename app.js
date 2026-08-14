@@ -777,12 +777,18 @@ async function sas(tr) {
   $('#sas').hidden = false;
   const lignes = $('#sas-lignes');
   lignes.innerHTML = '';
+  /* Rythme volontairement lent : chaque ligne se tape caractère par
+   * caractère, puis marque une pause — le temps de se lire. */
+  const pauses = [900, 1100, 1500, 1000, 1700, 1000];
   for (let i = 0; i < etapes.length; i++) {
     const d = document.createElement('div');
-    d.textContent = etapes[i];
     lignes.appendChild(d);
+    for (const c of etapes[i]) {            // effet machine à écrire
+      d.textContent += c;
+      await new Promise(r => setTimeout(r, 22));
+    }
     $('#sas-jauge').style.width = Math.round(((i + 1) / etapes.length) * 100) + '%';
-    await new Promise(r => setTimeout(r, i === etapes.length - 1 ? 550 : 380));
+    await new Promise(r => setTimeout(r, pauses[i] || 900));
     d.classList.add('ok');
   }
 }

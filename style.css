@@ -301,12 +301,26 @@ select.cfg-in{min-width:120px}
 .msgr-de{display:block;color:var(--gris);font-size:.72rem;
   font-family:system-ui,sans-serif;margin-bottom:2px}
 .msgr-t{white-space:pre-wrap;word-break:break-word}
-.msgr-envoi{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+.msgr-envoi{display:flex;flex-direction:column;gap:8px;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
   border-top:1px solid var(--trait)}
 .msgr-envoi input{flex:1;padding:11px 14px;border-radius:var(--r);
   border:1px solid var(--trait);background:var(--fond);color:var(--texte)}
 .msgr-envoi input:focus{outline:none;border-color:var(--or)}
 .msgr-envoi .btn1{padding:10px 16px}
+.msgr-ligne{display:flex;gap:8px}
+.cfg-url{width:100%;max-width:520px}
+.msgr-mj{display:flex;gap:8px}
+.msgr-mj input{font-size:.8rem;padding:7px 10px;min-width:0}
+.msgr-carnet{padding:8px 12px;border-bottom:1px solid var(--trait);
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.msgr-carnet:empty{display:none;padding:0;border:none}
+.msgr-ctitre{color:var(--gris);font-size:.78rem;font-family:system-ui,sans-serif}
+.msgr-dest{font-size:.82rem;color:var(--gris)}
+.msgr-dest a{cursor:pointer;margin-left:6px}
+.msgr-un.jrn{max-width:100%;align-self:stretch}
+.msgr-jtete{display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:-14px;background:var(--fond2);padding:6px 0;z-index:1}
 
 /* ── large ───────────────────────────────────────────────────────────── */
 @media (min-width:900px){

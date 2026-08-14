@@ -266,6 +266,14 @@ window.voirComme = async function (nom) {
     const b = reelles.get(c);
     if (b) tr.f[fid] = b64vers(await hkdf(b, 'frag:' + fid));
   }
+  /* La messagerie aussi se simule : mêmes canaux que le joueur, mêmes
+     contacts — les clés viennent du trousseau du MJ, qui a tout. */
+  if (MJ_TR.m) {
+    tr.m = {};
+    for (const id of vue.msg || [])
+      if (MJ_TR.m[id]) tr.m[id] = MJ_TR.m[id];
+    tr.ctc = vue.ctc || [];
+  }
   await demarrer(tr);
   location.hash = '#/';
   let b = document.getElementById('simu');
@@ -326,6 +334,21 @@ function emettreCampagne(cfg) {
     L.push('    ouvre:');
     for (const o of r.ouvre || []) L.push(`      - ${ym(o)}`);
   }
+  const m = cfg.messagerie || {};
+  L.push('', 'messagerie:');
+  L.push(`  actif: ${ym(m.actif || 'non')}`);
+  L.push(`  firebase_url: ${ym(m.firebase_url || '')}`);
+  const cx = m.canaux || [];
+  L.push(`  canaux:${cx.length ? '' : ' []'}`);
+  for (const c of cx) {
+    L.push(`    - id: ${ym(c.id)}`);
+    L.push(`      nom: ${ym(c.nom || c.id)}`);
+    L.push('      membres:');
+    for (const mb of c.membres || []) L.push(`        - ${ym(mb)}`);
+  }
+  const ctc = m.contacts || [];
+  L.push(`  contacts:${ctc.length ? '' : ' []'}`);
+  for (const n of ctc) L.push(`    - ${ym(n)}`);
   L.push('', 'avance:');
   for (const [k, v] of Object.entries(cfg.avance || {})) L.push(`  ${k}: ${ym(v)}`);
   L.push('');
@@ -781,6 +804,19 @@ async function vueConfig(a) {
       <p>Ce que tes joueurs lisent en arrivant. <code>@Nom</code> devient un lien.</p>
       <textarea id="cfg-accueil" class="cfg-large">${ech((cfg.site || {}).accueil || '')}</textarea>
 
+      <h2>Messagerie</h2>
+      <p>Boîte aux lettres Firebase (voir GUIDE.md pour la création, 5 minutes).
+      Le carnet d'adresses sème des contacts chez chaque joueur — un nom de
+      PNJ ou de PJ par ligne, qu'ils pourront contacter d'emblée.</p>
+      <p><label><input type="checkbox" id="cfg-msg-actif"
+        ${String((cfg.messagerie || {}).actif || '').toLowerCase().match(/^(oui|true|yes|1)$/) ? 'checked' : ''}>
+        Messagerie active</label></p>
+      <p><input class="cfg-in cfg-url" id="cfg-msg-url"
+        placeholder="https://…firebasedatabase.app"
+        value="${ech((cfg.messagerie || {}).firebase_url || '')}"></p>
+      <label>Contacts semés (carnet d'adresses)<br>
+      <textarea id="cfg-msg-ctc" class="cfg-exc">${ech(((cfg.messagerie || {}).contacts || []).join('\n'))}</textarea></label>
+
       <h2>Exceptions nominatives</h2>
       <p>Une cible par ligne : <code>pnj-omega</code> (fiche entière),
       <code>pnj-omega#Secret</code> (ces rubriques), <code>tag:atlantide</code>.</p>
@@ -814,6 +850,14 @@ async function vueConfig(a) {
     });
     const acc = document.getElementById('cfg-accueil');
     if (acc) { cfg.site = cfg.site || {}; cfg.site.accueil = acc.value.trim(); }
+    const ma = document.getElementById('cfg-msg-actif');
+    if (ma) {
+      cfg.messagerie = cfg.messagerie || {};
+      cfg.messagerie.actif = ma.checked ? 'oui' : 'non';
+      cfg.messagerie.firebase_url = document.getElementById('cfg-msg-url').value.trim();
+      cfg.messagerie.contacts = document.getElementById('cfg-msg-ctc').value
+        .split('\n').map(x => x.trim()).filter(Boolean);
+    }
     cfg.exceptions = { voit: {}, voit_pas: {} };
     document.querySelectorAll('.cfg-exc').forEach(el => {
       const specs = el.value.split('\n').map(x => x.trim()).filter(Boolean);
