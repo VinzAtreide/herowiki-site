@@ -355,7 +355,13 @@ function emettreCampagne(cfg) {
   L.push(`  contacts:${ctc.length ? '' : ' []'}`);
   for (const n of ctc) L.push(`    - ${ym(n)}`);
   L.push('', 'avance:');
-  for (const [k, v] of Object.entries(cfg.avance || {})) L.push(`  ${k}: ${ym(v)}`);
+  for (const [k, v] of Object.entries(cfg.avance || {})) {
+    if (k === 'rotation') {                       // liste → JSON (YAML le lit)
+      if ((v || []).length) L.push(`  rotation: ${JSON.stringify(v)}`);
+    } else if (k === 'renommer') {                // dict → JSON en ligne
+      if (v && Object.keys(v).length) L.push(`  renommer: ${JSON.stringify(v)}`);
+    } else L.push(`  ${k}: ${ym(v)}`);
+  }
   L.push('');
   return L.join('\n');
 }
@@ -793,7 +799,7 @@ async function vueConfig(a) {
           return `<option value="${ech(c)}"${(j.pj || '') === c ? ' selected' : ''}>${f ? ech(f.n) : '(aucun)'}</option>`;
         }).join('');
         return `<tr>
-        <td><input class="cfg-in" data-j="${i}" data-k="nom" value="${ech(j.nom || '')}"></td>
+        <td><input class="cfg-in" data-j="${i}" data-k="nom" data-orig="${ech(j.nom || '')}" value="${ech(j.nom || '')}"></td>
         <td><select class="cfg-in" data-j="${i}" data-k="role">
           <option value=""${mj ? '' : ' selected'}>joueur</option>
           <option value="mj"${mj ? ' selected' : ''}>MJ</option></select></td>
@@ -851,7 +857,15 @@ async function vueConfig(a) {
         if (k === 'role') { if (v === 'mj') { j.role = 'mj'; delete j.groupe; delete j.pj; } else delete j.role; }
         else if (k === 'palier') { if (v) j.palier = v; else delete j.palier; }
         else if (k === 'pj') { if (v) j.pj = v; else delete j.pj; }
-        else j[k] = v;
+        else {
+          // Renommage : la directive `renommer` migre la phrase de passe du
+          // joueur — son mot de passe survit au changement de nom.
+          if (k === 'nom' && el.dataset.orig && v && v !== el.dataset.orig) {
+            cfg.avance = cfg.avance || {};
+            cfg.avance.renommer = { ...(cfg.avance.renommer || {}), [el.dataset.orig]: v };
+          }
+          j[k] = v;
+        }
       }
     });
     const acc = document.getElementById('cfg-accueil');
