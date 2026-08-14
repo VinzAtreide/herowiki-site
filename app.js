@@ -97,12 +97,40 @@ function cleDePhrase(phrase) {
   });
 }
 
+/* Pourquoi une ouverture a échoué : « phrase » (aucun trousseau de ce nom),
+   « reseau » (le registre est injoignable, ou un pare-feu filtre les .bin),
+   « illisible » (le trousseau existe mais ne s'ouvre pas — publication en
+   cours ou accès renouvelé). Sans ça, les trois cas donnaient le même
+   message, et l'on cherchait une faute de frappe là où c'était le réseau. */
+let ECHEC = '';
+
 async function ouvrirTrousseau(k) {
   const nom = hex(await sha256(SEL, enc.encode('trousseau:'), k)).slice(0, 24);
-  const paquet = await prendre('t/' + nom + '.bin');
-  if (!paquet) return null;
-  return await ouvrir(await hkdf(k, 'trousseau'), paquet);
+  ECHEC = '';
+  let paquet;
+  try { paquet = await prendre('t/' + nom + '.bin'); }
+  catch (e) { ECHEC = 'reseau'; return null; }
+  if (!paquet) {
+    // le fichier n'existe pas : phrase inconnue — sauf si TOUS les .bin sont
+    // filtrés, ce qu'une sonde sur un fichier toujours présent départage.
+    ECHEC = 'phrase';
+    try { if (!await prendre('accueil.bin')) ECHEC = 'reseau'; }
+    catch (e) { ECHEC = 'reseau'; }
+    return null;
+  }
+  const tr = await ouvrir(await hkdf(k, 'trousseau'), paquet);
+  if (!tr) ECHEC = 'illisible';
+  return tr;
 }
+
+const MESSAGE_ECHEC = {
+  phrase: 'Cette phrase de passe ne correspond à aucun accès. Vérifie '
+        + 'l\'orthographe et les tirets, ou demande le lien au MJ.',
+  reseau: 'Le registre est injoignable depuis cet appareil — réseau, pare-feu '
+        + 'ou antivirus. Essaie une autre connexion (partage de téléphone).',
+  illisible: 'Ton accès vient d\'être renouvelé, ou le registre est en cours '
+        + 'de mise à jour : réessaie dans cinq minutes.',
+};
 
 async function installer(tr) {
   MOI = { nom: tr.nom, mj: tr.mj, groupe: tr.groupe, pjh: tr.pj || null,
@@ -912,7 +940,9 @@ async function tenter(phrase, memoriser) {
   if (lien) {
     history.replaceState(null, '', location.pathname + location.search);
     if (await tenter(decodeURIComponent(lien[1]), true)) return;
-    $('#porte-msg').textContent = "Ce lien d'accès n'est plus valable — demande le nouveau au MJ.";
+    $('#porte-msg').textContent = ECHEC === 'phrase'
+      ? "Ce lien d'accès n'est plus valable — demande le nouveau au MJ."
+      : (MESSAGE_ECHEC[ECHEC] || MESSAGE_ECHEC.phrase);
   }
 
   // reprise silencieuse
@@ -936,7 +966,7 @@ async function tenter(phrase, memoriser) {
     if (!ok) {
       $('#porte-ok').disabled = false;
       $('#porte-msg').className = 'msg';
-      $('#porte-msg').textContent = 'Cette phrase de passe ne correspond à aucun accès.';
+      $('#porte-msg').textContent = MESSAGE_ECHEC[ECHEC] || MESSAGE_ECHEC.phrase;
       $('#phrase').select();
     }
   };
