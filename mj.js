@@ -266,12 +266,17 @@ window.voirComme = async function (nom) {
     const b = reelles.get(c);
     if (b) tr.f[fid] = b64vers(await hkdf(b, 'frag:' + fid));
   }
-  /* La messagerie aussi se simule : mêmes canaux que le joueur, mêmes
-     contacts — les clés viennent du trousseau du MJ, qui a tout. */
+  /* La messagerie aussi se simule : mêmes canaux que le joueur, avec SES
+     étiquettes (« Avec le MJ », « 💬 Untel ») — les clés viennent du
+     trousseau du MJ, qui a tout. */
   if (MJ_TR.m) {
     tr.m = {};
-    for (const id of vue.msg || [])
-      if (MJ_TR.m[id]) tr.m[id] = MJ_TR.m[id];
+    const vm = vue.msg || {};
+    const ids = Array.isArray(vm) ? vm : Object.keys(vm);
+    for (const id of ids)
+      if (MJ_TR.m[id])
+        tr.m[id] = { n: Array.isArray(vm) ? MJ_TR.m[id].n : vm[id],
+                     k: MJ_TR.m[id].k };
     tr.ctc = vue.ctc || [];
   }
   await demarrer(tr);

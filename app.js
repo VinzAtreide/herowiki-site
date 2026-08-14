@@ -497,6 +497,17 @@ function listeParCategories(items, bible) {
     `<summary><span>${ech(titre)}</span> <i>${n}</i></summary>${contenu}</details>`;
 
   const sousListe = (k, l) => {
+    // Le kiosque : les unes se rangent par ville, du numéro le plus récent
+    // (date de parution fictive) au plus ancien.
+    if (bible === 'campagne' && k === 'Gazette') {
+      const an = e => { const m = String(e.n).match(/\b(1[0-9]{3}|20[0-9]{2})\b/); return m ? +m[1] : 0; };
+      const tri = t => [...t].sort((a, b) => an(b) - an(a) || String(a.n).localeCompare(String(b.n), 'fr'));
+      const estEC = e => /Courrier d[’']Emerald City/.test(String(e.n));
+      const villes = [['Freedom City', tri(l.filter(e => !estEC(e)))],
+                      ['Emerald City', tri(l.filter(estEC))]];
+      return villes.filter(([, t]) => t.length).map(([v, t]) =>
+        bloc(`${k}/${v}`, v, '<ul class="liste">' + t.map(carte).join('') + '</ul>', t.length)).join('');
+    }
     if (!(bible === 'lore' && k === 'Lieu' && l.length > 40))
       return '<ul class="liste">' + l.map(carte).join('') + '</ul>';
     const parRegion = new Map();

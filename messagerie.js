@@ -83,11 +83,9 @@ function msgOuvrir() {
       <div class="msgr-corps" id="msgr-corps"><p class="rien">Choisis un canal.</p></div>
       <form class="msgr-envoi" id="msgr-form" hidden>
         ${MOI.mj ? `<div class="msgr-mj">
-          <input id="msgr-de" list="msgr-pers" autocomplete="off"
-                 placeholder="expéditeur affiché — vide : ${ech(MOI.nom)}" maxlength="40">
+          <select id="msgr-de" title="Expéditeur affiché"></select>
           <input id="msgr-ts" autocomplete="off"
                  placeholder="horodatage affiché — vide : maintenant" maxlength="40">
-          <datalist id="msgr-pers"></datalist>
         </div>` : ''}
         <div class="msgr-dest" id="msgr-dest" hidden></div>
         <div class="msgr-ligne">
@@ -130,18 +128,34 @@ function msgCarnet() {
   });
 }
 
-/* Les identités que le MJ peut endosser : le carnet, les correspondants déjà
-   vus, et — si la page MJ a été ouverte — tous les personnages des archives. */
+/* Les identités que le MJ peut endosser, en liste déroulante : lui-même, les
+   contacts du carnet, les personnages-joueurs — et « Autre… » pour improviser
+   n'importe qui. (Pour enrichir la liste durablement : ⚙ Réglages →
+   Messagerie → contacts semés.) */
 function msgPersonas() {
-  const dl = $('#msgr-pers');
-  if (!dl) return;
+  const sel = $('#msgr-de');
+  if (!sel) return;
+  const garde = sel.value;
   const noms = new Set(MSG_CTC);
   const a = (typeof ADMIN !== 'undefined') && ADMIN;   // rempli si la page MJ a servi
   if (a && a.fiches)
     for (const f of Object.values(a.fiches))
-      if (f.b === 'pnj' || (f.c || '').startsWith('pj/'))
+      if ((f.c || '').startsWith('pj/'))
         noms.add(f.n || f.id);
-  dl.innerHTML = [...noms].sort().map(n => `<option value="${ech(n)}">`).join('');
+  sel.innerHTML = `<option value="">✍ Moi (${ech(MOI.nom)})</option>`
+    + [...noms].sort().map(n => `<option value="${ech(n)}">🎭 ${ech(n)}</option>`).join('')
+    + '<option value="*autre*">🎭 Autre…</option>';
+  if ([...sel.options].some(o => o.value === garde)) sel.value = garde;
+  sel.onchange = () => {
+    if (sel.value !== '*autre*') return;
+    const n = (prompt('Nom de l\'expéditeur affiché ?') || '').trim();
+    if (n) {
+      const o = document.createElement('option');
+      o.value = n; o.textContent = '🎭 ' + n;
+      sel.insertBefore(o, sel.lastElementChild);
+      sel.value = n;
+    } else sel.value = '';
+  };
 }
 
 async function msgEnvoyer(ev) {
@@ -154,7 +168,7 @@ async function msgEnvoyer(ev) {
   if (MOI.mj) {                              // métadonnées libres du MJ
     const de = ($('#msgr-de') || {}).value || '';
     const ts = ($('#msgr-ts') || {}).value || '';
-    if (de.trim()) m.de = de.trim();
+    if (de.trim() && de !== '*autre*') m.de = de.trim();
     if (ts.trim()) m.ts = ts.trim();
   }
   if (MSG_DEST) m.a = MSG_DEST;              // réponse « en personnage »
