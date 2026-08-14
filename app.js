@@ -301,6 +301,7 @@ const RAYONS = [
   { id: 'regles', nom: 'Les règles', ico: '📖' },
   { id: 'campagne', nom: 'La chronique', ico: '📜' },
   { id: 'pj', nom: 'Nos personnages', ico: '⭐' },
+  { id: 'mj', nom: 'Ma campagne', ico: '🎲' },   // vide pour les joueurs → invisible
 ];
 
 /* L'ordre de lecture de chaque rayon : les catégories citées d'abord, dans
@@ -310,7 +311,8 @@ const CAT_ORDRE = {
   lore: ['Lieu', 'Quartier général', 'Organisation', 'Événement', 'Espèce', 'Artefact'],
   pnj: ['Héros', 'Vilain', 'Personnalité', 'Figurant', 'Créature', 'Archétype'],
   regles: ['Pouvoir', 'Talent', 'Équipement', 'Véhicule', 'Option de règles'],
-  campagne: ["Résumé d'épisode", 'Journal', 'Aide de jeu'],
+  campagne: ["Résumé d'épisode", 'Gazette', 'Chronologie', 'Journal', 'Aide de jeu'],
+  mj: ['Fil rouge'],
 };
 const BAL = { 'Grand public': 0, 'Super': 1, 'Secret': 2, 'Très secret': 3, 'MJ only': 4,
   'Projet Isekai': 5 };
@@ -797,6 +799,7 @@ async function demarrer(tr) {
   $('#qui').title = MOI.nom + (MOI.mj ? ' — MJ' : '');
   $('#mj-btn').hidden = !MOI.mj;
   document.body.classList.toggle('mj', !!MOI.mj);   // révèle les sceaux 🜲
+  if (window.msgInit) msgInit(tr);
   peuplerCote();
   await router();
 }
@@ -865,6 +868,7 @@ async function tenter(phrase, memoriser) {
 
 window.addEventListener('hashchange', router);
 $('#retour').onclick = () => history.length > 1 ? history.back() : (location.hash = '#/');
+$('#msg-btn').onclick = () => window.msgOuvrir && msgOuvrir();
 $('#mj-btn').onclick = () => location.hash = '#/mj';
 $('#voirph').onclick = () => {
   const p = $('#phrase');
