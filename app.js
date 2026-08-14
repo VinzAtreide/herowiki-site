@@ -313,7 +313,7 @@ const CAT_ORDRE = {
   pnj: ['Héros', 'Vilain', 'Personnalité', 'Figurant', 'Créature', 'Archétype'],
   regles: ['Pouvoir', 'Talent', 'Équipement', 'Véhicule', 'Option de règles'],
   campagne: ["Résumé d'épisode", 'Gazette', 'Chronologie', "Vie à l'académie", 'Journal', 'Aide de jeu'],
-  mj: ['Fil rouge'],
+  mj: ['Fil rouge', 'Saison', 'Registre'],
 };
 const BAL = { 'Grand public': 0, 'Super': 1, 'Secret': 2, 'Très secret': 3, 'MJ only': 4,
   'Projet Isekai': 5 };
