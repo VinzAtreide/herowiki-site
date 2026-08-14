@@ -644,9 +644,8 @@ async function vueAccueil() {
   out += `<h2>🔗 Liens utiles</h2><div class="tuiles">`;
   const guide = ORDRE.find(e => e.n === 'Par où commencer');
   if (guide) out += tuile('#/f/' + guide.h, '🧭', 'Par où commencer', 'le guide du nouvel arrivant');
-  if (MOI.pjh && CAT.has(MOI.pjh))
-    out += tuile('#/f/' + MOI.pjh, '⭐', 'Ma fiche', CAT.get(MOI.pjh).n);
-  out += camarades.map(e => tuile('#/f/' + e.h, '🦸', e.n, e.t || '')).join('');
+  // Les fiches de personnages ne s'affichent plus en tuiles : le rayon
+  // « Nos personnages » suffit (demande du MJ, 14/08/2026).
   out += portes.map(e => tuile('#/f/' + e.h, '📍', e.n, '')).join('');
   out += parRayon.map(r => tuile('#/r/' + r.id, r.ico, r.nom, r.n + ' fiches')).join('');
   out += `</div>`;
