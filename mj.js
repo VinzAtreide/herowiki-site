@@ -826,7 +826,7 @@ async function vueConfig(a) {
         placeholder="https://…firebasedatabase.app"
         value="${ech((cfg.messagerie || {}).firebase_url || '')}"></p>
       <label>Contacts semés (carnet d'adresses)<br>
-      <textarea id="cfg-msg-ctc" class="cfg-exc">${ech(((cfg.messagerie || {}).contacts || []).join('\n'))}</textarea></label>
+      <textarea id="cfg-msg-ctc" class="cfg-ctc">${ech(((cfg.messagerie || {}).contacts || []).join('\n'))}</textarea></label>
 
       <h2>Exceptions nominatives</h2>
       <p>Une cible par ligne : <code>pnj-omega</code> (fiche entière),
@@ -880,6 +880,7 @@ async function vueConfig(a) {
     }
     cfg.exceptions = { voit: {}, voit_pas: {} };
     document.querySelectorAll('.cfg-exc').forEach(el => {
+      if (!el.dataset.s || !el.dataset.n) return;   // garde-fou : vraies exceptions seulement
       const specs = el.value.split('\n').map(x => x.trim()).filter(Boolean);
       if (specs.length) cfg.exceptions[el.dataset.s][el.dataset.n] = specs;
     });

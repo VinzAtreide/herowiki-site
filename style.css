@@ -311,6 +311,8 @@ select.cfg-in{min-width:120px}
 .msgr-ligne{display:flex;gap:8px}
 .cfg-url{width:100%;max-width:520px}
 .neuf{font-size:.7rem;vertical-align:super}
+.cfg-ctc{width:100%;max-width:520px;min-height:72px;padding:8px;border-radius:8px;
+  border:1px solid var(--trait);background:var(--fond);color:var(--texte)}
 .msgr-mj{display:flex;gap:8px}
 .msgr-mj input,.msgr-mj select{font-size:.8rem;padding:7px 10px;min-width:0;flex:1;
   border-radius:var(--r);border:1px solid var(--trait);background:var(--fond);
