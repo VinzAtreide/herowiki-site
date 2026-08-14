@@ -311,7 +311,7 @@ const CAT_ORDRE = {
   lore: ['Lieu', 'Quartier général', 'Organisation', 'Événement', 'Espèce', 'Artefact'],
   pnj: ['Héros', 'Vilain', 'Personnalité', 'Figurant', 'Créature', 'Archétype'],
   regles: ['Pouvoir', 'Talent', 'Équipement', 'Véhicule', 'Option de règles'],
-  campagne: ["Résumé d'épisode", 'Gazette', 'Chronologie', 'Journal', 'Aide de jeu'],
+  campagne: ["Résumé d'épisode", 'Gazette', 'Chronologie', "Vie à l'académie", 'Journal', 'Aide de jeu'],
   mj: ['Fil rouge'],
 };
 const BAL = { 'Grand public': 0, 'Super': 1, 'Secret': 2, 'Très secret': 3, 'MJ only': 4,
