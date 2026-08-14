@@ -133,6 +133,7 @@ async function installer(tr) {
     if (fr) CAT.set(h, { h, n: fr.n, t: fr.ti, k: fr.k, b: fr.b, tg: fr.tg || [] });
   }
   ORDRE = [...CAT.values()].sort((a, b) => nrm(a.n).localeCompare(nrm(b.n), 'fr'));
+  reperNouveautes();
 }
 
 /* ── lecture d'un fragment ──────────────────────────────────────────────── */
@@ -327,7 +328,39 @@ function liens(el) {
 
 function carte(e) {
   return `<li><a href="#/f/${e.h}"><span class="n">${ech(e.n)}</span>` +
+    (NEUFS.has(e.h) ? ' <span class="neuf" title="Nouveau ou modifié depuis ta dernière lecture">✨</span>' : '') +
     (e.t ? ` <span class="t">${ech(e.t)}</span>` : '') + `</a></li>`;
+}
+
+/* ── le ✨ : nouveau ou modifié depuis la dernière lecture de CE lecteur.
+   Chaque fiche porte une empreinte de version (e.v) ; on compare à celle
+   mémorisée sur l'appareil lors de la dernière ouverture de la fiche.
+   Première visite : on photographie tout, sans badge — le monde n'est pas
+   « nouveau », il est là. */
+let NEUFS = new Set();
+function versionsCle() { return 'hw.versions.' + (MOI.nom || ''); }
+function reperNouveautes() {
+  NEUFS = new Set();
+  let connu = null;
+  try { connu = JSON.parse(localStorage.getItem(versionsCle())); } catch (e) { }
+  if (!connu) {                       // première visite : photographie
+    const inst = {};
+    for (const e of ORDRE) if (e.v) inst[e.h] = e.v;
+    try { localStorage.setItem(versionsCle(), JSON.stringify(inst)); } catch (e) { }
+    return;
+  }
+  for (const e of ORDRE)
+    if (e.v && connu[e.h] !== e.v) NEUFS.add(e.h);
+}
+function marquerLu(h) {
+  const e = CAT.get(h);
+  if (!e || !e.v) return;
+  NEUFS.delete(h);
+  try {
+    const connu = JSON.parse(localStorage.getItem(versionsCle()) || '{}');
+    connu[h] = e.v;
+    localStorage.setItem(versionsCle(), JSON.stringify(connu));
+  } catch (err) { }
 }
 
 function listeAvecLettres(items) {
@@ -381,6 +414,7 @@ async function vueFiche(h) {
     vu.unshift(h);
     localStorage.setItem('hw.vu', JSON.stringify(vu.slice(0, 6)));
   } catch (err) { }
+  marquerLu(h);                 // le ✨ s'éteint : la fiche est lue
   armerTables($('#vue'));
   if (e && e.img) chargerVisuel(h);
   liens($('#vue'));
@@ -618,8 +652,7 @@ async function vueAccueil() {
     if (pool.length) surpr.push(pool[Math.floor(Math.random() * pool.length)]);
   }
 
-  // liens utiles : sa fiche, celles de ses camarades, les portes du monde
-  const camarades = ORDRE.filter(e => e.b === 'pj' && e.h !== MOI.pjh);
+  // liens utiles : le guide, la une du jour, les portes du monde, les rayons
   const portes = ['Claremont Academy', 'Freedom City']
     .map(n => ORDRE.find(e => e.n === n)).filter(Boolean);
 
@@ -644,6 +677,13 @@ async function vueAccueil() {
   out += `<h2>🔗 Liens utiles</h2><div class="tuiles">`;
   const guide = ORDRE.find(e => e.n === 'Par où commencer');
   if (guide) out += tuile('#/f/' + guide.h, '🧭', 'Par où commencer', 'le guide du nouvel arrivant');
+  // La une du jour : chaque jour, le kiosque met un numéro en vitrine —
+  // même vitrine pour toute la table (déterministe par la date).
+  const kiosque = ORDRE.filter(e => e.b === 'campagne' && e.k === 'Gazette');
+  if (kiosque.length) {
+    const du = kiosque[Math.floor(Date.now() / 864e5) % kiosque.length];
+    out += tuile('#/f/' + du.h, '📰', 'La une du jour', du.n);
+  }
   // Les fiches de personnages ne s'affichent plus en tuiles : le rayon
   // « Nos personnages » suffit (demande du MJ, 14/08/2026).
   out += portes.map(e => tuile('#/f/' + e.h, '📍', e.n, '')).join('');
