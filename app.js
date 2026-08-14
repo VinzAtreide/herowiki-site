@@ -662,10 +662,25 @@ async function vueAccueil() {
     <div id="accueil-mot"></div>`;
 
   if (MOI.pjh && CAT.has(MOI.pjh)) {
+    // La carte étudiante : l'identité du personnage comme l'école la
+    // délivrerait — la fiche « light » qui suffit pour jouer. Le numéro
+    // d'étudiant est dérivé de la fiche : fictif, mais toujours le même.
     const moi = CAT.get(MOI.pjh);
-    out += `<h2>⭐ ${ech(moi.n)}${moi.t ? ` <span class="stt petit">${ech(moi.t)}</span>` : ''}</h2>
-      <div class="visuel" id="visuel"></div>
-      <p><a class="puce" href="#/f/${MOI.pjh}">Ouvrir ma fiche complète</a></p>
+    const num = 'CA-26-' + String(1000 + (parseInt(MOI.pjh.slice(0, 6), 16) % 9000));
+    out += `<h2>🪪 Votre identité</h2>
+      <a class="carte-etu" href="#/f/${MOI.pjh}">
+        <span class="ce-tete"><b>CLAREMONT ACADEMY</b><i>Année scolaire 2026-2027</i></span>
+        <span class="ce-corps">
+          <span class="ce-photo" id="visuel">${ech((moi.n || '?').trim()[0] || '?')}</span>
+          <span class="ce-infos">
+            <b class="ce-nom">${ech(moi.n)}</b>
+            <i>N° étudiant : ${num}</i>
+            <i>Première année — Bayview Heights, Freedom City</i>
+            <i>Programme : modules d'excellence</i>
+          </span>
+        </span>
+        <span class="ce-pied">CARTE D'ACCÈS AU CAMPUS · toucher pour ouvrir le dossier complet ▸</span>
+      </a>
       <div id="accueil-statbloc"></div>`;
   }
 

@@ -313,6 +313,30 @@ select.cfg-in{min-width:120px}
 .neuf{font-size:.7rem;vertical-align:super}
 .cfg-ctc{width:100%;max-width:520px;min-height:72px;padding:8px;border-radius:8px;
   border:1px solid var(--trait);background:var(--fond);color:var(--texte)}
+
+/* ── la carte étudiante (accueil) ────────────────────────────────────── */
+.carte-etu{display:block;max-width:440px;border-radius:14px;overflow:hidden;
+  border:1px solid var(--trait);background:linear-gradient(160deg,var(--fond2),var(--fond3));
+  text-decoration:none;color:var(--texte);box-shadow:0 6px 18px #0004;
+  transition:transform .15s}
+.carte-etu:hover{transform:translateY(-2px)}
+.ce-tete{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  padding:10px 14px;background:linear-gradient(90deg,#f2c14e22,transparent);
+  border-bottom:1px solid var(--trait)}
+.ce-tete b{letter-spacing:.14em;font-size:.82rem;color:var(--or)}
+.ce-tete i{font-style:normal;font-size:.7rem;color:var(--gris)}
+.ce-corps{display:flex;gap:14px;padding:14px;align-items:center}
+.ce-photo{flex:0 0 72px;width:72px;height:72px;border-radius:10px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-size:2rem;
+  background:var(--fond);border:1px solid var(--trait);color:var(--or)}
+.ce-photo img{width:100%;height:100%;object-fit:cover}
+.ce-infos{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ce-nom{font-size:1.15rem}
+.ce-infos i{font-style:normal;font-size:.78rem;color:var(--gris);
+  font-family:system-ui,sans-serif}
+.ce-pied{display:block;padding:7px 14px;font-size:.64rem;letter-spacing:.06em;
+  color:var(--gris);border-top:1px dashed var(--trait);
+  font-family:system-ui,sans-serif}
 .msgr-mj{display:flex;gap:8px}
 .msgr-mj input,.msgr-mj select{font-size:.8rem;padding:7px 10px;min-width:0;flex:1;
   border-radius:var(--r);border:1px solid var(--trait);background:var(--fond);
