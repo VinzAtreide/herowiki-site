@@ -110,6 +110,10 @@ function msgOuvrir() {
   }
   p.classList.add('ouvert');
   if (MSG_CANAUX.size === 1) msgCanal([...MSG_CANAUX.keys()][0]);
+  //  À la réouverture du panneau, on recharge le canal courant : sans cela
+  //  l'affichage restait figé sur l'état d'avant la fermeture, et un message
+  //  reçu entre-temps n'apparaissait jamais. (Audit du 18/08/2026.)
+  else if (MSG_ACTIF) msgCanal(MSG_ACTIF);
 }
 
 /* Le carnet d'adresses du joueur : un clic ouvre le canal privé avec le MJ
@@ -173,14 +177,21 @@ async function msgEnvoyer(ev) {
   }
   if (MSG_DEST) m.a = MSG_DEST;              // réponse « en personnage »
   const d = await msgSceller(c.k, m);
+  const rendre = () => { $('#msgr-texte').value = t; };   // on ne perd jamais le texte
   try {
-    await fetch(`${META.msg}/c/${MSG_ACTIF}.json`, {
+    const r = await fetch(`${META.msg}/c/${MSG_ACTIF}.json`, {
       method: 'POST', body: JSON.stringify({ d }),
     });
+    //  Sans ce contrôle, un refus du serveur (401, règle d'écriture) passait
+    //  pour un succès : le champ était vidé, rien n'était envoyé, et le
+    //  panneau affichait « Aucun message ». (Audit du 18/08/2026.)
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     msgCharger(MSG_ACTIF);
   } catch (e) {
+    rendre();
     $('#msgr-corps').insertAdjacentHTML('beforeend',
-      `<p class="msg">Envoi impossible — vérifie la connexion.</p>`);
+      `<p class="msg msg-ko">Le message n'est pas parti — ton texte est resté
+       dans le cadre, réessaie dans un instant.</p>`);
   }
 }
 

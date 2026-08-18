@@ -160,7 +160,11 @@ async function installer(tr) {
     const fr = await fragment(h, 0);
     if (fr) CAT.set(h, { h, n: fr.n, t: fr.ti, k: fr.k, b: fr.b, tg: fr.tg || [] });
   }
-  ORDRE = [...CAT.values()].sort((a, b) => nrm(a.n).localeCompare(nrm(b.n), 'fr'));
+  //  `numeric: true` : sans lui, « Épisode 10 » se range entre « Épisode 1 »
+  //  et « Épisode 2 ». La campagne en prévoit sept saisons — le défaut se
+  //  serait vu au dixième épisode. (Audit du 18/08/2026.)
+  ORDRE = [...CAT.values()].sort((a, b) =>
+    nrm(a.n).localeCompare(nrm(b.n), 'fr', { numeric: true }));
   reperNouveautes();
 }
 
@@ -434,7 +438,11 @@ async function vueFiche(h) {
       out += `<div class="tete">` +
         (e.img ? `<figure class="portrait" id="visuel"></figure>` : '') +
         (e.h ? `<div class="entree">${e.h}</div>` : '') + `</div>`;
-    if (e.tg && e.tg.length)
+    //  Les étiquettes nomment les ouvrages de la gamme (Earth-Prime, Hero
+    //  High, SuperTeam Handbook…) : elles rappellent au joueur qu'il lit un
+    //  supplément, pas un registre. Elles restent au MJ, qui s'en sert pour
+    //  naviguer. (Audit d'immersion du 18/08/2026 : 799 fiches sur 1 137.)
+    if (MOI.mj && e.tg && e.tg.length)
       out += `<p>${e.tg.map(t => `<a class="puce" href="#/t/${encodeURIComponent(t)}">${ech(String(t))}</a>`).join('')}</p>`;
   }
   for (const r of f.rubriques) {
@@ -443,7 +451,8 @@ async function vueFiche(h) {
     // « document officiel de l'académie »
     const off = /aptitudes|statbloc|dossier scolaire|pour l'incarner/i.test(r.d.t || '') ? ' releve' : '';
     out += `<section class="rub${off}"><h2><span>${ech(r.d.t || '')}</span>` +
-      `<span class="bal b${b}">${ech(r.d.bal || '')}</span></h2>${r.d.h}</section>`;
+      (MOI.mj ? `<span class="bal b${b}">${ech(r.d.bal || '')}</span>` : '') +
+      `</h2>${r.d.h}</section>`;
   }
   $('#vue').innerHTML = out;
   // mémorise les six dernières fiches lues, sur cet appareil seulement
@@ -722,6 +731,23 @@ async function vueAccueil() {
       <div id="accueil-statbloc"></div>`;
   }
 
+  //  « Depuis la dernière fois » : le mécanisme des empreintes ✨ existait
+  //  mais n'était visible que noyé dans les listes de rayon. C'est pourtant
+  //  la première chose qu'un joueur veut savoir en rouvrant le site un
+  //  mercredi soir. (Audit joueur du 18/08/2026.)
+  const neufs = ORDRE.filter(e => NEUFS.has(e.h) && e.h !== MOI.pjh);
+  if (neufs.length) {
+    out += `<h2>✨ Depuis ta dernière visite</h2>`
+      + `<p class="stt">${neufs.length === 1 ? 'Une page a changé'
+         : neufs.length + ' pages ont changé'} depuis que tu es venu.</p>`
+      + '<ul class="liste liste-neuf">' + neufs.slice(0, 8).map(e =>
+        `<li><a href="#/f/${e.h}"><span class="n">${ech(e.n)}</span>`
+        + (e.t ? ` <span class="t">${ech(e.t)}</span>` : '')
+        + `</a></li>`).join('') + '</ul>';
+    if (neufs.length > 8)
+      out += `<p class="stt">…et ${neufs.length - 8} autres, dans les rayons.</p>`;
+  }
+
   // les liens utiles en tuiles
   const tuile = (href, ico, titre, sous) =>
     `<a class="tuile" href="${href}"><span class="tuile-ico">${ico}</span>` +
@@ -872,35 +898,79 @@ async function router() {
  * s'ouvrent en scène. La séquence tourne PENDANT le vrai déchiffrement, et
  * dure au moins le temps de se lire. */
 async function sas(tr) {
-  const etapes = [
-    'Initialisation du terminal des archives…',
-    `Authentification : ${tr.nom || 'agent'}…`,
-    'Empreinte rétinienne acceptée…',
-    'Contrôle des habilitations…',
-    'Déchiffrement des dossiers autorisés…',
-    'Accès accordé. Bienvenue.',
-  ];
+  /*  Le sas est la première seconde de fiction de la soirée : il doit durer
+   *  cinq secondes, pas plus, et ne ressembler à personne d'autre. Chaque
+   *  joueur a son terminal, ses lignes et sa couleur — dérivés de son
+   *  personnage, jamais de son prénom réel s'il en change.  */
+  const PERSOS = {
+    leo: {
+      teinte: '#ffb347', ico: '☀',
+      titre: 'TERMINAL DES ARCHIVES · poste 01',
+      lignes: [
+        'Ouverture du registre…',
+        'Capteur thermique : présence détectée, 36,9 °C.',
+        'Relevé de charge : réserve pleine.',
+        'Unité Ambre · licence provisoire · cote E.',
+        'Bonsoir, Leo. Ne brûle rien ce soir.',
+      ],
+    },
+    louise: {
+      teinte: '#7fd4ff', ico: '✦',
+      titre: 'TERMINAL DES ARCHIVES · poste 02',
+      lignes: [
+        'Ouverture du registre…',
+        'Appareils à portée : 14. Tous connus.',
+        'Signal entrant : stable. Fréquence propre.',
+        'Unité Ambre · licence provisoire · cote E.',
+        'Bonsoir, Louise. Le registre t\'écoute aussi.',
+      ],
+    },
+    luca: {
+      teinte: '#b39ddb', ico: '☾',
+      titre: 'TERMINAL DES ARCHIVES · poste 03',
+      lignes: [
+        'Ouverture du registre…',
+        'Luminosité de la pièce : basse. Confort optimal.',
+        'Aucune présence détectée à cet emplacement.',
+        'Unité Ambre · licence provisoire · cote E.',
+        'Bonsoir, Luca. On ne t\'a pas vu entrer.',
+      ],
+    },
+  };
+  const DEFAUT = {
+    teinte: '', ico: '▮', titre: 'TERMINAL DES ARCHIVES',
+    lignes: [
+      'Initialisation du terminal des archives…',
+      'Authentification en cours…',
+      'Contrôle des habilitations…',
+      'Déchiffrement des dossiers autorisés…',
+      'Accès accordé. Bienvenue.',
+    ],
+  };
+  const p = PERSOS[(tr.nom || '').toLowerCase().trim()] || DEFAUT;
+  const etapes = p.lignes;
   $('#porte').hidden = true;
   $('#sas').hidden = false;
+  const sasEl = $('#sas');
+  if (p.teinte) sasEl.style.setProperty('--sas-teinte', p.teinte);
+  const t = $('#sas-titre');
+  if (t) t.textContent = p.ico + ' ' + p.titre;
   const lignes = $('#sas-lignes');
   lignes.innerHTML = '';
-  /* Rythme théâtral mais court : 12 s à la première visite décourageaient une
-   * joueuse de neuf ans qui revient trois fois par soirée (audit du 18/08).
-   * La cérémonie complète n'a lieu qu'à la PREMIÈRE entrée ; ensuite, on
-   * accélère fortement — le plaisir de la porte n'a lieu qu'une fois. */
-  const revu = localStorage.getItem('hw.sasvu') === '1';
-  localStorage.setItem('hw.sasvu', '1');
-  const pauses = revu ? [120, 120, 140, 120, 160, 260]
-                      : [520, 560, 700, 560, 800, 700];
+  /*  Budget total : 5 000 ms. Cinq lignes, donc 1 000 ms chacune, dont le
+   *  temps de frappe. Une ligne longue se tape plus vite pour que le total
+   *  ne bouge pas — la cérémonie dure toujours cinq secondes.  */
+  const BUDGET = 5000, par = BUDGET / etapes.length;
   for (let i = 0; i < etapes.length; i++) {
     const d = document.createElement('div');
     lignes.appendChild(d);
-    for (const c of etapes[i]) {            // effet machine à écrire
+    const frappe = Math.min(14, (par * 0.55) / Math.max(1, etapes[i].length));
+    for (const c of etapes[i]) {
       d.textContent += c;
-      await new Promise(r => setTimeout(r, revu ? 2 : 9));
+      await new Promise(r => setTimeout(r, frappe));
     }
     $('#sas-jauge').style.width = Math.round(((i + 1) / etapes.length) * 100) + '%';
-    await new Promise(r => setTimeout(r, pauses[i] || 900));
+    await new Promise(r => setTimeout(r, Math.max(80, par - etapes[i].length * frappe)));
     d.classList.add('ok');
   }
 }

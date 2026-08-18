@@ -409,3 +409,17 @@ section.rub.releve{border:1px solid var(--trait);border-radius:12px;
 @media (orientation:landscape){
   .rub p,.rub li{max-width:68ch}
 }
+
+.msg-ko{color:#e08a4b;border-left:2px solid #e08a4b;padding-left:10px}
+
+/* le bloc des nouveautés sur l'accueil : discret mais repérable */
+.liste-neuf li{border-left:2px solid var(--or);padding-left:8px}
+.liste-neuf .n::before{content:"✨ ";font-size:.9em}
+
+/* ── sas personnalisé : chaque joueur a son terminal et sa couleur ───── */
+#sas{--sas-teinte:var(--or)}
+#sas-titre{color:var(--sas-teinte);font:600 .82rem/1.5 Consolas,Menlo,monospace;
+  letter-spacing:.14em;text-transform:uppercase;margin:0 0 14px;opacity:.85}
+#sas-jauge{background:var(--sas-teinte)}
+#sas .eclair{color:var(--sas-teinte)}
+#sas-lignes div.ok{color:var(--sas-teinte);opacity:.75}
