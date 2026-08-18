@@ -337,11 +337,18 @@ const RAYONS = [
    cet ordre ; les autres suivent par taille. L'alphabet ne sert qu'à
    l'intérieur d'une catégorie. */
 const CAT_ORDRE = {
-  lore: ['Lieu', 'Quartier général', 'Organisation', 'Événement', 'Espèce', 'Artefact'],
-  pnj: ['Héros', 'Vilain', 'Personnalité', 'Figurant', 'Créature', 'Archétype'],
-  regles: ['Pouvoir', 'Talent', 'Équipement', 'Véhicule', 'Option de règles'],
-  campagne: ["Résumé d'épisode", 'Gazette', 'Chronologie', "Vie à l'académie", 'Journal', 'Aide de jeu'],
-  mj: ['Fil rouge', 'Saison', 'Registre'],
+  lore: ['Lieu', 'Quartier général', 'Organisation', 'Événement', 'Espèce',
+         'Artefact', 'Concept'],
+  pnj: ['Héros', 'Vilain', 'Personnalité', 'Figurant', 'Sbires', 'Créature',
+        'Archétype', 'Organisation'],
+  regles: ['Règle', 'Option de règles', 'Pouvoir', 'Talent', 'Équipement', 'Véhicule',
+           'Quartier général', "Qualité d'arme", 'Archétype', "Modèle d'espèce",
+           'Zone de danger', 'Rôle de concept', 'Tradition magique',
+           'Profil de pouvoirs',
+           'Cadre de série', 'Note de conception'],
+  campagne: ['Chronique', 'Aide de jeu', "Vie à l'académie", 'Gazette',
+             'Chronologie', 'Journal'],
+  mj: ['Chronique', 'Fil rouge', 'Saison', 'Registre'],
 };
 const BAL = { 'Grand public': 0, 'Super': 1, 'Secret': 2, 'Très secret': 3, 'MJ only': 4,
   'Projet Isekai': 5 };
