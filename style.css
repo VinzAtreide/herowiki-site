@@ -391,3 +391,21 @@ section.rub.releve{border:1px solid var(--trait);border-radius:12px;
   #vue>*{max-width:820px}
   #pied{margin-left:270px}
 }
+
+
+/* ── lisibilité mobile (audit du 18/08/2026) ─────────────────────────── */
+@media (max-width:480px){
+  /* les tables de caractéristiques et de défenses : la dernière colonne
+     sortait de l'écran. On serre la police et les marges plutôt que de
+     laisser le joueur découvrir qu'il manque une valeur. */
+  .rub table{font-size:.78rem}
+  .rub table th,.rub table td{padding:5px 4px}
+  /* zones tactiles : plancher de 44 px sur tout ce qui se touche */
+  .liste a,.ray,.tuile,.ico,nav a{min-height:44px}
+  .ico{padding:11px 9px}
+  /* la barre du haut : deux icônes collées finissaient par se toucher */
+  #barre{gap:8px}
+}
+@media (orientation:landscape){
+  .rub p,.rub li{max-width:68ch}
+}

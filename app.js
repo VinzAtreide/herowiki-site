@@ -884,15 +884,20 @@ async function sas(tr) {
   $('#sas').hidden = false;
   const lignes = $('#sas-lignes');
   lignes.innerHTML = '';
-  /* Rythme volontairement lent : chaque ligne se tape caractère par
-   * caractère, puis marque une pause — le temps de se lire. */
-  const pauses = [900, 1100, 1500, 1000, 1700, 1000];
+  /* Rythme théâtral mais court : 12 s à la première visite décourageaient une
+   * joueuse de neuf ans qui revient trois fois par soirée (audit du 18/08).
+   * La cérémonie complète n'a lieu qu'à la PREMIÈRE entrée ; ensuite, on
+   * accélère fortement — le plaisir de la porte n'a lieu qu'une fois. */
+  const revu = localStorage.getItem('hw.sasvu') === '1';
+  localStorage.setItem('hw.sasvu', '1');
+  const pauses = revu ? [120, 120, 140, 120, 160, 260]
+                      : [520, 560, 700, 560, 800, 700];
   for (let i = 0; i < etapes.length; i++) {
     const d = document.createElement('div');
     lignes.appendChild(d);
     for (const c of etapes[i]) {            // effet machine à écrire
       d.textContent += c;
-      await new Promise(r => setTimeout(r, 22));
+      await new Promise(r => setTimeout(r, revu ? 2 : 9));
     }
     $('#sas-jauge').style.width = Math.round(((i + 1) / etapes.length) * 100) + '%';
     await new Promise(r => setTimeout(r, pauses[i] || 900));
