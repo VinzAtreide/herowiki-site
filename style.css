@@ -423,3 +423,11 @@ section.rub.releve{border:1px solid var(--trait);border-radius:12px;
 #sas-jauge{background:var(--sas-teinte)}
 #sas .eclair{color:var(--sas-teinte)}
 #sas-lignes div.ok{color:var(--sas-teinte);opacity:.75}
+
+/* l'étoile des favoris : posée dans le titre de la fiche, discrète tant
+   qu'elle n'est pas allumée. La liste ne vit que sur l'appareil. */
+.etoile{background:none;border:0;cursor:pointer;font-size:1.1em;line-height:1;
+  color:var(--doux,#8b949e);opacity:.55;padding:0 .2em;vertical-align:.05em;
+  transition:opacity .15s,color .15s}
+.etoile:hover{opacity:1}
+.etoile.on{color:#ffb347;opacity:1}

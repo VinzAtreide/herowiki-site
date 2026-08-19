@@ -377,6 +377,25 @@ function carte(e) {
    Première visite : on photographie tout, sans badge — le monde n'est pas
    « nouveau », il est là. */
 let NEUFS = new Set();
+/* ── les favoris ────────────────────────────────────────────────────────────
+   Une étoile par fiche, gardée sur l'appareil seulement : rien ne part en
+   ligne, rien n'est chiffré à republier. Chaque joueur a sa propre liste,
+   nominative, pour qu'un téléphone partagé ne mélange pas les étoiles.      */
+function favCle() { return 'hw.fav.' + (MOI.nom || ''); }
+function favLire() {
+  try { return new Set(JSON.parse(localStorage.getItem(favCle()) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function favEcrire(s) {
+  try { localStorage.setItem(favCle(), JSON.stringify([...s])); } catch (e) { }
+}
+function favBascule(h) {
+  const s = favLire();
+  s.has(h) ? s.delete(h) : s.add(h);
+  favEcrire(s);
+  return s.has(h);
+}
+
 function versionsCle() { return 'hw.versions.' + (MOI.nom || ''); }
 function reperNouveautes() {
   NEUFS = new Set();
@@ -433,7 +452,9 @@ async function vueFiche(h) {
   const e = f.entree;
   let out = '';
   if (e) {
-    out += `<h1 class="tt">${ech(e.n)}</h1>`;
+    out += `<h1 class="tt">${ech(e.n)}` +
+      `<button id="fav" class="etoile" title="Mettre de côté">` +
+      `${favLire().has(h) ? '★' : '☆'}</button></h1>`;
     if (e.ti) out += `<p class="stt">${ech(e.ti)}</p>`;
     const m = [];
     if (e.k) m.push(ech(e.k));
@@ -474,6 +495,13 @@ async function vueFiche(h) {
     vu.unshift(h);
     localStorage.setItem('hw.vu', JSON.stringify(vu.slice(0, 6)));
   } catch (err) { }
+  const bEt = document.getElementById('fav');
+  if (bEt) bEt.onclick = () => {
+    const mis = favBascule(h);
+    bEt.textContent = mis ? '★' : '☆';
+    bEt.classList.toggle('on', mis);
+  };
+  if (bEt && favLire().has(h)) bEt.classList.add('on');
   marquerLu(h);                 // le ✨ s'éteint : la fiche est lue
   armerTables($('#vue'));
   if (e && e.img) chargerVisuel(h);
@@ -769,18 +797,32 @@ async function vueAccueil() {
   out += `<h2>🔗 Liens utiles</h2><div class="tuiles">`;
   const guide = ORDRE.find(e => e.n === 'Par où commencer');
   if (guide) out += tuile('#/f/' + guide.h, '🧭', 'Par où commencer', 'le guide du nouvel arrivant');
-  // La une du jour : chaque jour, le kiosque met un numéro en vitrine —
-  // même vitrine pour toute la table (déterministe par la date).
+
+  //  La dernière gazette : celle de l'épisode au numéro le plus élevé. Elle
+  //  se met à jour toute seule dès qu'une gazette d'épisode est publiée ;
+  //  s'il n'y en a aucune, on retombe sur la gazette la plus récemment
+  //  modifiée. Rien à régler à la main. (Demande du MJ, 19/08/2026.)
   const kiosque = ORDRE.filter(e => e.b === 'campagne' && e.k === 'Gazette');
-  if (kiosque.length) {
-    const du = kiosque[Math.floor(Date.now() / 864e5) % kiosque.length];
-    out += tuile('#/f/' + du.h, '📰', 'La une du jour', du.n);
-  }
+  const derniere = kiosque.filter(e => typeof e.ep === 'number')
+    .sort((a, b) => b.ep - a.ep)[0] || kiosque[kiosque.length - 1];
+  if (derniere)
+    out += tuile('#/f/' + derniere.h, '📰', 'La dernière gazette', derniere.n);
+
+  //  Au hasard : une fiche du monde, jamais une règle ni une fiche de PJ.
+  //  Le clic ne mène nulle part — il retire une nouvelle carte sur place.
+  out += `<a class="tuile" id="tuile-hasard" href="#/hasard">` +
+    `<span class="tuile-ico">🎲</span><span class="tuile-t">Au hasard</span>` +
+    `<span class="tuile-s" id="hasard-nom">tire une page du monde</span></a>`;
   // Les fiches de personnages ne s'affichent plus en tuiles : le rayon
   // « Nos personnages » suffit (demande du MJ, 14/08/2026).
   out += portes.map(e => tuile('#/f/' + e.h, '📍', e.n, '')).join('');
   out += parRayon.map(r => tuile('#/r/' + r.id, r.ico, r.nom, r.n + ' fiches')).join('');
   out += `</div>`;
+
+  // ce que le joueur a mis de côté — même mémoire locale, avant tout le reste
+  const mesFav = [...favLire()].map(x => CAT.get(x)).filter(Boolean);
+  if (mesFav.length)
+    out += `<h2>★ Mes fiches</h2><ul class="liste">${mesFav.slice(0, 12).map(carte).join('')}</ul>`;
 
   // reprendre où on en était — mémoire locale de l'appareil, rien en ligne
   let repris = [];
@@ -797,6 +839,27 @@ async function vueAccueil() {
   document.title = META.titre;
   window.scrollTo(0, 0);
 
+  //  La tuile « Au hasard » annonce la page qu'elle va ouvrir — ce qu'on voit
+  //  est ce qu'on obtient — et retire aussitôt une autre carte pour le clic
+  //  suivant. Elle change donc à chaque fois. (Demande du MJ, 19/08/2026.)
+  const tH = document.getElementById('tuile-hasard');
+  if (tH) {
+    const nomH = document.getElementById('hasard-nom');
+    let tire = tirageHasard();
+    const afficher = () => {
+      tire = tirageHasard();
+      if (nomH) nomH.textContent = tire ? tire.n : 'rien à tirer';
+    };
+    afficher();
+    tH.onclick = ev => {
+      ev.preventDefault();
+      if (!tire) return;
+      const cible = tire.h;
+      afficher();                 // la prochaine carte est déjà retournée
+      location.hash = '#/f/' + cible;
+    };
+  }
+
   // le mot d'accueil du MJ (chiffré Grand public)
   (async () => {
     const brut = MOI.coffres.get('p0');
@@ -809,7 +872,9 @@ async function vueAccueil() {
 
   // le visuel et le statbloc de son personnage
   if (MOI.pjh && CAT.has(MOI.pjh)) {
-    chargerVisuel(MOI.pjh);
+    //  ne demander le portrait que s'il existe : sans ce test, chaque
+    //  connexion d'un joueur sans image produisait une erreur 404
+    if (CAT.get(MOI.pjh).img) chargerVisuel(MOI.pjh);
     (async () => {
       const f = await ficheEntiere(MOI.pjh);
       const el = document.getElementById('accueil-statbloc');
@@ -879,12 +944,28 @@ function peuplerCote() {
       `<p class="meta"><span>${items.length} fiches</span></p>` + listeAvecLettres(items);
     fermerCote();
   };
-  $('#compteur').textContent = `${ORDRE.length} pages · ${MOI.mj ? 'accès MJ' : 'accès joueur'}`;
+  //  Côté joueur, le pied de page ne parle pas d'outil : il compte des pages
+  //  du registre, pas des « accès ». (Audit d'immersion.)
+  $('#compteur').textContent = MOI.mj
+    ? `${ORDRE.length} pages · accès MJ`
+    : `${ORDRE.length} pages consultables`;
 }
 
 const fermerCote = () => document.body.classList.remove('ouvert');
 
 /* ── routage ────────────────────────────────────────────────────────────── */
+
+/*  Le vivier de la tuile « Au hasard » : le monde, jamais les règles, jamais
+    les fiches de personnage-joueur, jamais la fiche du lecteur.
+    (Demande du MJ, 19/08/2026.)  */
+function vivierHasard() {
+  return ORDRE.filter(e => (e.b === 'lore' || e.b === 'pnj' || e.b === 'campagne')
+    && e.h !== MOI.pjh);
+}
+function tirageHasard() {
+  const v = vivierHasard();
+  return v.length ? v[Math.floor(Math.random() * v.length)] : null;
+}
 
 async function router() {
   const h = location.hash.replace(/^#\/?/, '');
@@ -899,6 +980,14 @@ async function router() {
   if (quoi === 'r') {
     const [bible, cible] = arg.split('/');
     return vueRayon(bible, $('#filtre').value, cible);
+  }
+  if (quoi === 'hasard') {
+    const tire = tirageHasard();
+    if (!tire) return vueAccueil();
+    //  replace() : le tirage ne s'empile pas dans l'historique, « retour »
+    //  ramène à l'accueil et pas à une chaîne de tirages.
+    location.replace('#/f/' + tire.h);
+    return;
   }
   if (quoi === 't') return vueTag(arg);
   if (quoi === 'q') { $('#q').value = arg; return vueRecherche(arg); }
@@ -987,6 +1076,24 @@ async function sas(tr) {
     d.classList.add('ok');
   }
 }
+
+/*  Prévisualisation du sas, pour le MJ seul : rejoue en entier le sas d'un
+    joueur donné, sans toucher à sa session, puis rend la main à la page MJ.
+    Aucune clé n'est manipulée — c'est de la mise en scène pure.
+    (Demande du MJ, 19/08/2026.)  */
+window.apercuSas = async function (nom) {
+  if (!MOI || !MOI.mj) return;
+  const app = $('#app'), sasEl = $('#sas');
+  const etaitCache = app.hidden;
+  app.hidden = true;
+  const teinteAvant = sasEl.style.getPropertyValue('--sas-teinte');
+  await sas({ nom: nom });
+  await new Promise(r => setTimeout(r, 700));   // le temps de lire la dernière ligne
+  sasEl.hidden = true;
+  sasEl.style.setProperty('--sas-teinte', teinteAvant);
+  $('#porte').hidden = true;
+  app.hidden = etaitCache ? true : false;
+};
 
 async function demarrer(tr) {
   window.TR_COURANT = tr;        // la page MJ s'en sert pour « voir comme »

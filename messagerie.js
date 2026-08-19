@@ -80,7 +80,7 @@ function msgOuvrir() {
         <button class="ico" id="msgr-x">✕</button></div>
       <div class="msgr-canaux" id="msgr-canaux"></div>
       <div class="msgr-carnet" id="msgr-carnet"></div>
-      <div class="msgr-corps" id="msgr-corps"><p class="rien">Choisis un canal.</p></div>
+      <div class="msgr-corps" id="msgr-corps"><p class="rien">Choisis à qui tu écris.</p></div>
       <form class="msgr-envoi" id="msgr-form" hidden>
         ${MOI.mj ? `<div class="msgr-mj">
           <select id="msgr-de" title="Expéditeur affiché"></select>

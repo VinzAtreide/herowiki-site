@@ -612,6 +612,10 @@ window.vueMJ = async function (sous) {
       ${(a.acces || []).filter(j => !j.mj).map(j =>
         `<a class="puce" data-voir="${ech(j.nom)}">👁 ${ech(j.nom)}</a>`).join(' ') || 'aucun joueur'}
     </p>
+    <p class="mj-actions">Revoir le sas de :
+      ${(a.acces || []).filter(j => !j.mj).map(j =>
+        `<a class="puce" data-sas="${ech(j.nom)}">🎬 ${ech(j.nom)}</a>`).join(' ') || 'aucun joueur'}
+    </p>
 
     ${repli('🔑 Accès des joueurs', `
     <div class="tw"><table><thead><tr><th>Qui</th><th>Voit</th><th>Phrase</th><th></th></tr></thead>
@@ -664,6 +668,10 @@ window.vueMJ = async function (sous) {
   });
   document.querySelectorAll('[data-voir]').forEach(el =>
     el.onclick = () => voirComme(el.dataset.voir));
+  //  Rejouer le sas d'un joueur, sans rien changer à sa session : le MJ voit
+  //  exactement ce que l'enfant voit en se connectant. (Demande du 19/08/2026.)
+  document.querySelectorAll('[data-sas]').forEach(el =>
+    el.onclick = () => window.apercuSas && window.apercuSas(el.dataset.sas));
   document.querySelectorAll('[data-rot]').forEach(el => el.onclick = async () => {
     const nom = el.dataset.rot;
     if (!confirm(`Donner une phrase de passe NEUVE à « ${nom} » ?\n`
