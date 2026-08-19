@@ -1098,3 +1098,13 @@ document.addEventListener('keydown', e => {
   if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#q').focus(); }
   if (e.key === 'Escape') fermerCote();
 });
+
+
+/*  L'application hors connexion : le registre s'installe sur l'écran d'accueil
+ *  et reste lisible dans la voiture, au fond du jardin, dans le métro. Le
+ *  cache ne contient que du chiffré. */
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}

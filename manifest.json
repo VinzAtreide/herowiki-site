@@ -1,13 +1,17 @@
 {
-  "name": "HeroWiki",
+  "name": "HeroWiki — Registre des archives",
   "short_name": "HeroWiki",
   "description": "Ce que le monde sait des super-héros",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
+  "lang": "fr",
+  "categories": ["books", "education", "entertainment"],
   "icons": [
-    { "src": "icone.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "icone.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
