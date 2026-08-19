@@ -415,7 +415,20 @@ function listeAvecLettres(items) {
 
 async function vueFiche(h) {
   $('#vue').innerHTML = '<p class="charge">Déchiffrement…</p>';
-  const f = await ficheEntiere(h);
+  //  Hors connexion, une page jamais ouverte n'est pas dans le cache : sans
+  //  ce garde-fou, l'écran restait sur « Déchiffrement… » indéfiniment, sans
+  //  un mot d'explication. (Second audit du 19/08.)
+  let f;
+  try {
+    f = await ficheEntiere(h);
+  } catch (e) {
+    $('#vue').innerHTML = navigator.onLine
+      ? `<p class="rien">Le registre n'a pas répondu. Réessaie dans un instant.</p>`
+      : `<p class="rien">Tu es hors connexion, et cette page-là, tu ne l'avais
+         pas encore ouverte.<br><br>Les pages que tu as déjà lues restent
+         disponibles.</p>`;
+    return;
+  }
   if (!f) { $('#vue').innerHTML = `<p class="rien">Cette page ne t'est pas ouverte.</p>`; return; }
   const e = f.entree;
   let out = '';

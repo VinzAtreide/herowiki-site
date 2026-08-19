@@ -43,15 +43,29 @@ self.addEventListener('fetch', ev => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;      // Firebase, GitHub : jamais
 
-  //  Les conteneurs chiffrés : immuables, donc cache d'abord.
+  //  Les conteneurs chiffrés. ⚠ Leur nom vient de l'IDENTIFIANT de la fiche,
+  //  pas de son contenu : un même fichier change quand la fiche change. Un
+  //  cache « pour toujours » gèlerait donc le wiki au premier chargement —
+  //  l'épisode suivant n'arriverait jamais, et une phrase révoquée
+  //  continuerait de fonctionner. (Défaut trouvé au second audit, 19/08.)
+  //  Donc : réseau d'abord, cache en secours, et un délai court pour ne pas
+  //  punir une mauvaise connexion.
   if (/\/(p|n|i|t|img)\/[^/]+\.bin$/.test(url.pathname)) {
-    ev.respondWith(caches.open(DONNEES).then(async c => {
-      const vu = await c.match(req);
-      if (vu) return vu;
-      const r = await fetch(req);
-      if (r && r.ok) c.put(req, r.clone());
-      return r;
-    }));
+    ev.respondWith((async () => {
+      const c = await caches.open(DONNEES);
+      try {
+        const ctrl = new AbortController();
+        const minuteur = setTimeout(() => ctrl.abort(), 2500);
+        const r = await fetch(req, { signal: ctrl.signal });
+        clearTimeout(minuteur);
+        if (r && r.ok) c.put(req, r.clone());
+        return r;
+      } catch (e) {
+        const vu = await c.match(req);
+        if (vu) return vu;
+        throw e;
+      }
+    })());
     return;
   }
 
@@ -76,5 +90,8 @@ self.addEventListener('fetch', ev => {
 /*  Le MJ peut vider le cache des données depuis la page MJ : utile après une
  *  refonte, inutile au quotidien (les noms de fichiers changent d'eux-mêmes). */
 self.addEventListener('message', ev => {
-  if (ev.data === 'hw-vider') caches.delete(DONNEES);
+  if (ev.data === 'hw-vider') {
+    ev.waitUntil(Promise.all([caches.delete(DONNEES), caches.delete(COQUE)])
+      .then(() => ev.source && ev.source.postMessage('hw-vide')));
+  }
 });
